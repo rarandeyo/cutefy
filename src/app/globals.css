@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+:root {
+  --background: #121212;
+  --foreground: #ffffff;
+  --spotify-green: #1db954;
+  --spotify-green-hover: #1ed760;
+  --card-bg: #181818;
+  --card-bg-hover: #282828;
+  --text-subdued: #a7a7a7;
+  --border-color: #282828;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-spotify-green: var(--spotify-green);
+  --color-spotify-green-hover: var(--spotify-green-hover);
+  --color-card-bg: var(--card-bg);
+  --color-card-bg-hover: var(--card-bg-hover);
+  --color-text-subdued: var(--text-subdued);
+  --color-border: var(--border-color);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
