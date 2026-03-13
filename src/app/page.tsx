@@ -215,7 +215,11 @@ const MainContent = () => {
           disabled={isLoadingTracks}
           className="w-full rounded-full bg-spotify-green px-6 py-3 font-semibold text-black transition-colors hover:bg-spotify-green-hover disabled:opacity-50 md:w-auto"
         >
-          {isLoadingTracks ? "読み込み中..." : allTracks.length > 0 ? "お気に入り曲を再取得" : "お気に入り曲を取得"}
+          {isLoadingTracks
+            ? "読み込み中..."
+            : allTracks.length > 0
+              ? "お気に入り曲を再取得"
+              : "お気に入り曲を取得"}
         </button>
         {allTracks.length > 0 && (
           <p className="text-sm text-text-subdued">{allTracks.length}曲を取得しました</p>

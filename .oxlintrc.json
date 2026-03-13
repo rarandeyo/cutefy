@@ -1,0 +1,15 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "react", "unicorn", "nextjs"],
+  "rules": {
+    "@typescript-eslint/no-explicit-any": "error",
+    "unicorn/no-array-for-each": "off",
+    "prefer-const": "error",
+    "@typescript-eslint/no-non-null-assertion": "error",
+    "react-hooks/exhaustive-deps": "warn",
+    "@typescript-eslint/no-unused-imports": "error",
+    "no-unused-vars": "error",
+    "@next/no-img-element": "off"
+  },
+  "ignorePatterns": ["node_modules", ".next", "dist", "**/*.d.ts"]
+}
