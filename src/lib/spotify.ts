@@ -63,26 +63,61 @@ export const filterTracksByDateRange = (
     (track) => track.addedAt >= dateRange.startDate && track.addedAt <= dateRange.endDate,
   );
 
+const spotifyFetch = async (
+  accessToken: string,
+  url: string,
+  options?: RequestInit,
+): Promise<Response> => {
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+      ...options?.headers,
+    },
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(
+      `Spotify API error: ${response.status} ${error?.error?.message ?? response.statusText}`,
+    );
+  }
+  return response;
+};
+
 export const createPlaylistFromTracks = async (
   accessToken: string,
   playlistName: string,
   trackUris: string[],
   isPublic = false,
 ): Promise<{ playlistId: string; playlistUrl: string }> => {
-  const sdk = createSpotifyClient(accessToken);
-  const user = await sdk.currentUser.profile();
+  // Use /me/playlists instead of /users/{user_id}/playlists (required for Dev Mode since Feb 2026)
+  const playlistResponse = await spotifyFetch(
+    accessToken,
+    "https://api.spotify.com/v1/me/playlists",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        name: playlistName,
+        public: isPublic,
+        description: `Created with Spotify Playlist Creator on ${new Date().toLocaleDateString()}`,
+      }),
+    },
+  );
+  const playlist = await playlistResponse.json();
 
-  const playlist = await sdk.playlists.createPlaylist(user.id, {
-    name: playlistName,
-    public: isPublic,
-    description: `Created with Spotify Playlist Creator on ${new Date().toLocaleDateString()}`,
-  });
-
-  // Add tracks in batches of 100 (Spotify API limit)
+  // Use /playlists/{id}/items instead of /playlists/{id}/tracks (required for Dev Mode since Feb 2026)
   const batchSize = 100;
   for (let i = 0; i < trackUris.length; i += batchSize) {
     const batch = trackUris.slice(i, i + batchSize);
-    await sdk.playlists.addItemsToPlaylist(playlist.id, batch);
+    await spotifyFetch(
+      accessToken,
+      `https://api.spotify.com/v1/playlists/${playlist.id}/items`,
+      {
+        method: "POST",
+        body: JSON.stringify({ uris: batch }),
+      },
+    );
   }
 
   return {
