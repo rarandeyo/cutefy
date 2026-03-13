@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useState, useSyncExternalStore, useTransition } from "react";
 import { authClient, signInWithSpotify, signOut, useSession } from "@/lib/auth-client";
 import {
   createPlaylistFromTracks,
@@ -9,6 +9,7 @@ import {
   filterTracksByDateRange,
   type TrackWithAddedAt,
 } from "@/lib/spotify";
+import { trackCache } from "@/lib/track-cache";
 
 type PlaylistState = {
   status: "idle" | "loading" | "success" | "error";
@@ -121,8 +122,13 @@ const getDefaultDateRange = (): DateRange => {
 };
 
 const MainContent = () => {
+  const cachedTracks = useSyncExternalStore(
+    trackCache.subscribe,
+    trackCache.getSnapshot,
+    trackCache.getServerSnapshot,
+  );
   const [dateRange, setDateRange] = useState<DateRange>(getDefaultDateRange);
-  const [allTracks, setAllTracks] = useState<TrackWithAddedAt[]>([]);
+  const [allTracks, setAllTracks] = useState<TrackWithAddedAt[]>(() => cachedTracks ?? []);
   const [isLoadingTracks, startLoadingTransition] = useTransition();
   const [playlistName, setPlaylistName] = useState("");
 
@@ -137,6 +143,7 @@ const MainContent = () => {
       }
       const tracks = await fetchAllSavedTracks(tokenResult.data.accessToken);
       setAllTracks(tracks);
+      trackCache.set(tracks);
     });
   };
 
@@ -159,17 +166,24 @@ const MainContent = () => {
     }
 
     const trackUris = filteredTracks.map((t) => t.uri);
-    const result = await createPlaylistFromTracks(
-      tokenResult.data.accessToken,
-      name.trim(),
-      trackUris,
-    );
+    try {
+      const result = await createPlaylistFromTracks(
+        tokenResult.data.accessToken,
+        name.trim(),
+        trackUris,
+      );
 
-    return {
-      status: "success",
-      message: "プレイリストを作成しました！",
-      playlistUrl: result.playlistUrl,
-    };
+      return {
+        status: "success",
+        message: "プレイリストを作成しました！",
+        playlistUrl: result.playlistUrl,
+      };
+    } catch (e) {
+      return {
+        status: "error",
+        message: e instanceof Error ? e.message : "プレイリスト作成中にエラーが発生しました",
+      };
+    }
   };
 
   const [playlistState, formAction, isPending] = useActionState(
@@ -183,7 +197,10 @@ const MainContent = () => {
         <h1 className="text-xl font-bold md:text-2xl">Playlist Creator</h1>
         <button
           type="button"
-          onClick={() => signOut()}
+          onClick={() => {
+            trackCache.clear();
+            signOut();
+          }}
           className="rounded-md px-4 py-2 text-sm text-text-subdued transition-colors hover:text-foreground"
         >
           ログアウト
@@ -198,7 +215,7 @@ const MainContent = () => {
           disabled={isLoadingTracks}
           className="w-full rounded-full bg-spotify-green px-6 py-3 font-semibold text-black transition-colors hover:bg-spotify-green-hover disabled:opacity-50 md:w-auto"
         >
-          {isLoadingTracks ? "読み込み中..." : "お気に入り曲を取得"}
+          {isLoadingTracks ? "読み込み中..." : allTracks.length > 0 ? "お気に入り曲を再取得" : "お気に入り曲を取得"}
         </button>
         {allTracks.length > 0 && (
           <p className="text-sm text-text-subdued">{allTracks.length}曲を取得しました</p>
