@@ -110,14 +110,10 @@ export const createPlaylistFromTracks = async (
   const batchSize = 100;
   for (let i = 0; i < trackUris.length; i += batchSize) {
     const batch = trackUris.slice(i, i + batchSize);
-    await spotifyFetch(
-      accessToken,
-      `https://api.spotify.com/v1/playlists/${playlist.id}/items`,
-      {
-        method: "POST",
-        body: JSON.stringify({ uris: batch }),
-      },
-    );
+    await spotifyFetch(accessToken, `https://api.spotify.com/v1/playlists/${playlist.id}/items`, {
+      method: "POST",
+      body: JSON.stringify({ uris: batch }),
+    });
   }
 
   return {
