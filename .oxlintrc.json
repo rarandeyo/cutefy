@@ -1,15 +1,52 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["typescript", "react", "unicorn", "nextjs"],
+  "plugins": ["typescript", "react", "unicorn", "nextjs", "import"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn",
+    "perf": "warn",
+    "style": "off"
+  },
   "rules": {
-    "@typescript-eslint/no-explicit-any": "error",
-    "unicorn/no-array-for-each": "off",
     "prefer-const": "error",
-    "@typescript-eslint/no-non-null-assertion": "error",
-    "react-hooks/exhaustive-deps": "warn",
-    "@typescript-eslint/no-unused-imports": "error",
+    "no-var": "error",
     "no-unused-vars": "error",
+    "eqeqeq": "error",
+
+    "@typescript-eslint/no-explicit-any": "error",
+    "@typescript-eslint/no-non-null-assertion": "error",
+    "@typescript-eslint/no-unused-imports": "error",
+    "@typescript-eslint/consistent-type-imports": [
+      "error",
+      { "prefer": "type-imports" }
+    ],
+    "typescript/no-misused-promises": "error",
+
+    "react/react-in-jsx-scope": "off",
+    "react/no-unstable-default-props": "warn",
+    "react-hooks/exhaustive-deps": "warn",
+
+    "unicorn/no-array-for-each": "off",
+    "unicorn/prefer-node-protocol": "error",
+
+    "import/no-default-export": "error",
+    "import/no-cycle": "error",
+    "import/no-unassigned-import": [
+      "error",
+      { "allow": ["**/*.css"] }
+    ],
+
+    "no-await-in-loop": "off",
+
     "@next/no-img-element": "off"
   },
+  "overrides": [
+    {
+      "files": ["src/app/**/page.tsx", "src/app/**/layout.tsx", "src/app/**/loading.tsx", "src/app/**/error.tsx", "src/app/**/not-found.tsx", "**/index.tsx"],
+      "rules": {
+        "import/no-default-export": "off"
+      }
+    }
+  ],
   "ignorePatterns": ["node_modules", ".next", "dist", "**/*.d.ts"]
 }
