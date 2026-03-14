@@ -14,7 +14,7 @@ const calendarDateToDate = (date: CalendarDate, endOfDay = false): Date => {
   const zoned = toZoned(date, getLocalTimeZone());
   const d = zoned.toDate();
   if (endOfDay) {
-    d.setHours(23, 59, 59, 999);
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
   }
   return d;
 };
