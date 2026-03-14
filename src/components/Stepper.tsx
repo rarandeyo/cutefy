@@ -30,7 +30,7 @@ export const Stepper: React.FC<StepperProps> = ({ steps, currentStep, onStepClic
             isIconOnly
             onPress={() => i < currentStep && onStepClick(i)}
             isDisabled={i > currentStep}
-            className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold transition-all duration-200 ${
+            className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold transition-all duration-200 ${
               i < currentStep
                 ? "cursor-pointer bg-spotify-green text-black hover:bg-spotify-green-hover"
                 : i === currentStep
@@ -38,7 +38,7 @@ export const Stepper: React.FC<StepperProps> = ({ steps, currentStep, onStepClic
                   : "border border-border bg-card-bg text-text-subdued"
             }`}
           >
-            {i < currentStep ? <Check className="h-5 w-5" /> : i + 1}
+            {i < currentStep ? <Check className="h-3.5 w-3.5" /> : i + 1}
           </Button>
           <span
             className={`hidden text-xs font-medium md:block ${

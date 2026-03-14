@@ -10,8 +10,5 @@ export const clientEnv = {
     process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID,
     "NEXT_PUBLIC_SPOTIFY_CLIENT_ID",
   ),
-  NEXT_PUBLIC_APP_URL: requireClientEnv(
-    process.env.NEXT_PUBLIC_APP_URL,
-    "NEXT_PUBLIC_APP_URL",
-  ),
+  NEXT_PUBLIC_APP_URL: requireClientEnv(process.env.NEXT_PUBLIC_APP_URL, "NEXT_PUBLIC_APP_URL"),
 } as const;

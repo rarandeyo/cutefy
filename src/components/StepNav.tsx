@@ -15,7 +15,7 @@ export const StepNav: React.FC<StepNavProps> = ({
   nextLabel = "次へ",
   nextDisabled = false,
 }) => (
-  <div className="flex items-center justify-between pt-6">
+  <div className="flex shrink-0 items-center justify-between pt-6">
     {onBack ? (
       <Button
         variant="ghost"

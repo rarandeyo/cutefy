@@ -1,12 +1,31 @@
 import { useState, useTransition } from "react";
+import type { CalendarDate } from "@internationalized/date";
 import { authClient } from "@/lib/auth-client";
 import { createPlaylistFromTracks, type TrackWithAddedAt } from "@/lib/spotify";
 import { INITIAL_PLAYLIST_STATE, type PlaylistState } from "@/types/playlist";
 
-export const usePlaylistCreation = (filteredTracks: TrackWithAddedAt[]) => {
-  const [playlistName, setPlaylistName] = useState("");
+const formatCalendarDate = (d: CalendarDate) => `${d.year}/${String(d.month).padStart(2, "0")}`;
+
+const generateDefaultName = (start: CalendarDate, end: CalendarDate): string =>
+  `お気に入り ${formatCalendarDate(start)} - ${formatCalendarDate(end)}`;
+
+export const usePlaylistCreation = (
+  filteredTracks: TrackWithAddedAt[],
+  dateRange: { startDate: CalendarDate; endDate: CalendarDate },
+) => {
+  const [manualName, setManualName] = useState("");
+  const [isNameManuallySet, setIsNameManuallySet] = useState(false);
   const [playlistState, setPlaylistState] = useState<PlaylistState>(INITIAL_PLAYLIST_STATE);
   const [isCreatingPlaylist, startCreatingTransition] = useTransition();
+
+  const playlistName = isNameManuallySet
+    ? manualName
+    : generateDefaultName(dateRange.startDate, dateRange.endDate);
+
+  const handlePlaylistNameChange = (name: string) => {
+    setManualName(name);
+    setIsNameManuallySet(true);
+  };
 
   const handleCreatePlaylist = () => {
     if (!playlistName.trim() || filteredTracks.length === 0) return;
@@ -33,14 +52,15 @@ export const usePlaylistCreation = (filteredTracks: TrackWithAddedAt[]) => {
   };
 
   const handleReset = (onComplete?: () => void) => {
-    setPlaylistName("");
+    setManualName("");
+    setIsNameManuallySet(false);
     setPlaylistState(INITIAL_PLAYLIST_STATE);
     onComplete?.();
   };
 
   return {
     playlistName,
-    setPlaylistName,
+    setPlaylistName: handlePlaylistNameChange,
     playlistState,
     isCreatingPlaylist,
     handleCreatePlaylist,
