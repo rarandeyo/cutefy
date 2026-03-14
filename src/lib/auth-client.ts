@@ -8,7 +8,7 @@ export const authClient = createAuthClient({
 export const signInWithSpotify = () =>
   authClient.signIn.social({
     provider: "spotify",
-    callbackURL: "/",
+    callbackURL: "/app",
   });
 
 export const signOut = () => authClient.signOut();
