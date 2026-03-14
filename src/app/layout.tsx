@@ -13,7 +13,7 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "Spotify Playlist Creator",
+  title: "Cutefy",
   description: "お気に入りの曲から期間を指定してプレイリストを作成",
 };
 

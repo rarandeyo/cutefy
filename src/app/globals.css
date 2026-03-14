@@ -23,6 +23,7 @@
   --color-text-subdued: var(--text-subdued);
   --color-border: var(--border-color);
   --font-sans: var(--font-sans);
+  --font-outfit: var(--font-outfit);
 }
 
 body {
@@ -55,12 +56,74 @@ body {
   }
 }
 
+@keyframes float-up {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: var(--tw-opacity, 0.08);
+  }
+  50% {
+    opacity: var(--tw-opacity, 0.12);
+  }
+  100% {
+    transform: translateY(-110vh) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+/* Force HeroUI dark theme regardless of color scheme */
+:root {
+  color-scheme: dark;
+
+  --background: oklch(12% 0.005 285.823);
+  --foreground: var(--snow);
+
+  --surface: oklch(0.2103 0.0059 285.89);
+  --surface-foreground: var(--foreground);
+  --surface-secondary: oklch(0.257 0.0037 286.14);
+  --surface-tertiary: oklch(0.2721 0.0024 247.91);
+
+  --overlay: oklch(0.2103 0.0059 285.89);
+  --overlay-foreground: var(--foreground);
+
+  --muted: oklch(70.5% 0.015 286.067);
+  --scrollbar: oklch(70.5% 0.015 286.067);
+
+  --default: oklch(27.4% 0.006 286.033);
+  --default-foreground: var(--snow);
+
+  --field-background: oklch(0.2103 0.0059 285.89);
+  --field-foreground: var(--foreground);
+
+  --warning: oklch(0.8203 0.1388 76.34);
+  --warning-foreground: var(--eclipse);
+  --danger: oklch(0.594 0.1967 24.63);
+  --danger-foreground: var(--snow);
+
+  --segment: oklch(0.3964 0.01 285.93);
+  --segment-foreground: var(--foreground);
+
+  --border: oklch(28% 0.006 286.033);
+  --separator: oklch(25% 0.006 286.033);
+  --focus: var(--accent);
+  --link: var(--foreground);
+
+  --surface-shadow: 0 0 0 0 transparent inset;
+  --overlay-shadow: 0 0 1px 0 rgba(255, 255, 255, 0.3) inset;
+  --field-shadow: 0 0 0 0 transparent inset;
+}
+
 @layer base {
   * {
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
+    min-height: 100dvh;
+    background:
+      radial-gradient(ellipse 80% 60% at 50% -10%, oklch(0.17 0.015 285) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 50% at 80% 80%, oklch(0.15 0.012 160) 0%, transparent 50%),
+      radial-gradient(ellipse 50% 40% at 10% 90%, oklch(0.14 0.01 285) 0%, transparent 50%),
+      var(--background);
   }
   html {
     @apply font-sans;
