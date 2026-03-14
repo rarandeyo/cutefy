@@ -34,7 +34,7 @@ const STEPS = [
 export const MainContent: React.FC = () => {
   const goNextRef = useRef<() => void>(undefined);
 
-  const { allTracks, isLoadingTracks, handleLoadTracks, progress } = useSavedTracks(() =>
+  const { allTracks, isLoadingTracks, handleLoadTracks, progress, error } = useSavedTracks(() =>
     goNextRef.current?.(),
   );
   const { currentStep, setCurrentStep, goBack, goNext } = useStepNavigation(
@@ -90,7 +90,7 @@ export const MainContent: React.FC = () => {
             aria-label="ログアウト"
             onPress={() => {
               trackCache.clear();
-              signOut();
+              signOut().catch(console.error);
             }}
             className="bg-white/10 text-foreground hover:bg-white/20"
           >
@@ -108,6 +108,7 @@ export const MainContent: React.FC = () => {
               isLoading={isLoadingTracks}
               trackCount={allTracks.length}
               progress={progress}
+              error={error}
               onLoadTracks={handleLoadTracks}
               onNext={goNext}
             />
@@ -139,23 +140,22 @@ export const MainContent: React.FC = () => {
       </div>
 
       <div className="flex shrink-0 items-center justify-between pt-4">
-        <button
-          type="button"
-          onClick={goBack}
+        <Button
+          variant="ghost"
+          onPress={goBack}
           className={`flex items-center gap-1 rounded-md px-4 py-2 text-sm text-text-subdued transition-colors hover:text-foreground ${currentStep === 0 ? "invisible" : ""}`}
         >
           <ChevronLeft className="h-4 w-4" />
           戻る
-        </button>
-        <button
-          type="button"
-          onClick={goNext}
-          disabled={nextDisabled}
+        </Button>
+        <Button
+          onPress={goNext}
+          isDisabled={nextDisabled}
           className={`flex items-center gap-1 rounded-full bg-spotify-green px-6 py-2.5 font-semibold text-black transition-colors hover:bg-spotify-green-hover disabled:cursor-not-allowed disabled:opacity-40 ${currentStep === 0 || currentStep === 2 ? "invisible" : ""}`}
         >
           次へ
           <ChevronRight className="h-4 w-4" />
-        </button>
+        </Button>
       </div>
     </div>
   );
