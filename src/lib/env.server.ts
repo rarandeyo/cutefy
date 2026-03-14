@@ -10,8 +10,10 @@ const requireEnv = (key: ServerEnvKey): string => {
   return value;
 };
 
-export const env = {
-  SPOTIFY_CLIENT_SECRET: requireEnv("SPOTIFY_CLIENT_SECRET"),
-  BETTER_AUTH_URL: requireEnv("BETTER_AUTH_URL"),
-  BETTER_AUTH_SECRET: requireEnv("BETTER_AUTH_SECRET"),
-} as const;
+type ServerEnv = Readonly<Record<ServerEnvKey, string>>;
+
+export const env: ServerEnv = new Proxy({} as ServerEnv, {
+  get(_, key: string) {
+    return requireEnv(key as ServerEnvKey);
+  },
+});
