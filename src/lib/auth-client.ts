@@ -11,6 +11,13 @@ export const signInWithSpotify = () =>
     callbackURL: "/app",
   });
 
-export const signOut = () => authClient.signOut();
+export const signOut = () =>
+  authClient.signOut({
+    fetchOptions: {
+      onSuccess: () => {
+        window.location.href = "/";
+      },
+    },
+  });
 
 export const useSession = authClient.useSession;
