@@ -17,6 +17,11 @@ export type TrackWithAddedAt = {
   addedAt: Date;
 };
 
+export type FetchProgress = {
+  loaded: number;
+  total: number;
+};
+
 const createSpotifyClient = (accessToken: string, refreshToken?: string): SpotifyApi => {
   const token: AccessToken = {
     access_token: accessToken,
@@ -37,7 +42,10 @@ const mapSavedTrackToTrackWithAddedAt = (item: SavedTrack): TrackWithAddedAt => 
   addedAt: new Date(item.added_at),
 });
 
-export const fetchAllSavedTracks = async (accessToken: string): Promise<TrackWithAddedAt[]> => {
+export const fetchAllSavedTracks = async (
+  accessToken: string,
+  onProgress?: (progress: FetchProgress) => void,
+): Promise<TrackWithAddedAt[]> => {
   const sdk = createSpotifyClient(accessToken);
   const allTracks: TrackWithAddedAt[] = [];
   const LIMIT = 50;
@@ -50,6 +58,7 @@ export const fetchAllSavedTracks = async (accessToken: string): Promise<TrackWit
     allTracks.push(...mappedTracks);
     total = response.total;
     offset += LIMIT;
+    onProgress?.({ loaded: allTracks.length, total });
   } while (offset < total);
 
   return allTracks;
@@ -128,7 +137,7 @@ export const createPlaylistFromTracks = async ({
       body: JSON.stringify({
         name: playlistName,
         public: visibility === "public",
-        description: `Created with Spotify Playlist Creator on ${new Date().toLocaleDateString()}`,
+        description: `Created with Cutefy on ${new Date().toLocaleDateString()}`,
       }),
     },
   });

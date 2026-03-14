@@ -13,7 +13,7 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
   trackCount,
   onReset,
 }) => (
-  <div className="flex flex-col items-center justify-center gap-8 py-16 animate-[fade-in_0.5s_ease-out]">
+  <div className="flex h-full flex-col items-center justify-center gap-8 animate-[fade-in_0.5s_ease-out]">
     <div className="relative">
       <div className="absolute -inset-4 animate-pulse rounded-full bg-spotify-green/10" />
       <div className="relative flex h-24 w-24 items-center justify-center rounded-full bg-spotify-green animate-[scale-in_0.4s_cubic-bezier(0.34,1.56,0.64,1)]">
