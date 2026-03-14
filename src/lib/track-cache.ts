@@ -1,12 +1,23 @@
+import { z } from "zod";
 import type { TrackWithAddedAt } from "./spotify";
 
 const CACHE_KEY = "spotify-tracks";
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24時間
 
-type CacheData = {
-  tracks: TrackWithAddedAt[];
-  cachedAt: number;
-};
+const cacheDataSchema = z.object({
+  tracks: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      uri: z.string(),
+      artists: z.string(),
+      albumName: z.string(),
+      albumImageUrl: z.string().or(z.undefined()),
+      addedAt: z.coerce.date(),
+    }),
+  ),
+  cachedAt: z.number(),
+});
 
 let listeners: (() => void)[] = [];
 let cachedResult: TrackWithAddedAt[] | null = null;
@@ -22,12 +33,13 @@ const emitChange = () => {
 
 const parseCache = (raw: string): TrackWithAddedAt[] | null => {
   try {
-    const data: CacheData = JSON.parse(raw);
-    if (Date.now() - data.cachedAt > CACHE_TTL) return null;
-    return data.tracks.map((track) => ({
-      ...track,
-      addedAt: new Date(track.addedAt),
-    }));
+    const parsed = cacheDataSchema.safeParse(JSON.parse(raw));
+    if (!parsed.success) {
+      localStorage.removeItem(CACHE_KEY);
+      return null;
+    }
+    if (Date.now() - parsed.data.cachedAt > CACHE_TTL) return null;
+    return parsed.data.tracks;
   } catch {
     localStorage.removeItem(CACHE_KEY);
     return null;
@@ -35,14 +47,14 @@ const parseCache = (raw: string): TrackWithAddedAt[] | null => {
 };
 
 export const trackCache = {
-  subscribe(listener: () => void) {
+  subscribe: (listener: () => void) => {
     listeners = [...listeners, listener];
     return () => {
       listeners = listeners.filter((l) => l !== listener);
     };
   },
 
-  getSnapshot(): TrackWithAddedAt[] | null {
+  getSnapshot: (): TrackWithAddedAt[] | null => {
     const raw = localStorage.getItem(CACHE_KEY);
     if (!raw) return null;
     if (raw === cachedRaw) return cachedResult;
@@ -51,17 +63,15 @@ export const trackCache = {
     return cachedResult;
   },
 
-  getServerSnapshot(): null {
-    return null;
-  },
+  getServerSnapshot: (): null => null,
 
-  set(tracks: TrackWithAddedAt[]) {
-    const data: CacheData = { tracks, cachedAt: Date.now() };
+  set: (tracks: TrackWithAddedAt[]) => {
+    const data = { tracks, cachedAt: Date.now() };
     localStorage.setItem(CACHE_KEY, JSON.stringify(data));
     emitChange();
   },
 
-  clear() {
+  clear: () => {
     localStorage.removeItem(CACHE_KEY);
     emitChange();
   },
