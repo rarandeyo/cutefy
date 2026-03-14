@@ -33,7 +33,7 @@
     "import/no-cycle": "error",
     "import/no-unassigned-import": [
       "error",
-      { "allow": ["**/*.css"] }
+      { "allow": ["**/*.css", "server-only"] }
     ],
 
     "no-await-in-loop": "off",
