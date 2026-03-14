@@ -134,7 +134,7 @@ export const LoginSection: React.FC<LoginSectionProps> = ({ isLoggedIn }) => {
             </Link>
           ) : (
             <Button
-              onPress={() => signInWithSpotify()}
+              onPress={() => signInWithSpotify().catch(console.error)}
               className="group relative rounded-full bg-spotify-green px-10 py-6 text-base font-bold text-black shadow-[0_0_30px_rgba(29,185,84,0.25)] transition-all duration-300 hover:bg-spotify-green-hover hover:shadow-[0_0_50px_rgba(29,185,84,0.4)] hover:scale-[1.03]"
             >
               <svg viewBox="0 0 24 24" className="mr-2 h-5 w-5 fill-current" aria-hidden="true">

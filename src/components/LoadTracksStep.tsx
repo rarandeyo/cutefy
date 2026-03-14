@@ -1,5 +1,5 @@
 import type React from "react";
-import { Button, Spinner } from "@heroui/react";
+import { Alert, Button, Spinner } from "@heroui/react";
 import { CheckCircle, Music } from "lucide-react";
 import type { FetchProgress } from "@/lib/spotify";
 import { StepNav } from "@/components/StepNav";
@@ -8,6 +8,7 @@ type LoadTracksStepProps = {
   isLoading: boolean;
   trackCount: number;
   progress: FetchProgress | null;
+  error: string | null;
   onLoadTracks: () => void;
   onNext: () => void;
 };
@@ -22,6 +23,7 @@ export const LoadTracksStep: React.FC<LoadTracksStepProps> = ({
   isLoading,
   trackCount,
   progress,
+  error,
   onLoadTracks,
   onNext,
 }) => (
@@ -89,15 +91,24 @@ export const LoadTracksStep: React.FC<LoadTracksStepProps> = ({
           )}
         </div>
       ) : (
-        trackCount > 0 && (
+        (trackCount > 0 || error) && (
           <Button
             onPress={onLoadTracks}
             className="flex items-center gap-2 rounded-full bg-white/10 px-8 py-3 font-semibold text-foreground transition-colors hover:bg-white/20"
           >
             <Music className="h-5 w-5" />
-            お気に入り曲を再取得
+            {error && trackCount === 0 ? "再試行" : "お気に入り曲を再取得"}
           </Button>
         )
+      )}
+
+      {error && (
+        <Alert status="danger" className="rounded-lg">
+          <Alert.Indicator />
+          <Alert.Content>
+            <Alert.Description className="text-sm">{error}</Alert.Description>
+          </Alert.Content>
+        </Alert>
       )}
 
       {!isLoading && trackCount > 0 && (

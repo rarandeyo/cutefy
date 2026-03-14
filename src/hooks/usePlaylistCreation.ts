@@ -31,23 +31,30 @@ export const usePlaylistCreation = (
     if (!playlistName.trim() || filteredTracks.length === 0) return;
 
     startCreatingTransition(async () => {
-      const tokenResult = await authClient.getAccessToken({ providerId: "spotify" });
-      if (tokenResult.error || !tokenResult.data) {
-        setPlaylistState({ status: "error", message: "認証エラーが発生しました" });
-        return;
-      }
+      try {
+        const tokenResult = await authClient.getAccessToken({ providerId: "spotify" });
+        if (tokenResult.error || !tokenResult.data) {
+          setPlaylistState({ status: "error", message: "認証エラーが発生しました" });
+          return;
+        }
 
-      const trackUris = filteredTracks.map((t) => t.uri);
-      const result = await createPlaylistFromTracks({
-        accessToken: tokenResult.data.accessToken,
-        playlistName: playlistName.trim(),
-        trackUris,
-      });
-      setPlaylistState({
-        status: "success",
-        message: "プレイリストを作成しました！",
-        playlistUrl: result.playlistUrl,
-      });
+        const trackUris = filteredTracks.map((t) => t.uri);
+        const result = await createPlaylistFromTracks({
+          accessToken: tokenResult.data.accessToken,
+          playlistName: playlistName.trim(),
+          trackUris,
+        });
+        setPlaylistState({
+          status: "success",
+          message: "プレイリストを作成しました！",
+          playlistUrl: result.playlistUrl,
+        });
+      } catch (e) {
+        setPlaylistState({
+          status: "error",
+          message: e instanceof Error ? e.message : "エラーが発生しました",
+        });
+      }
     });
   };
 

@@ -6,18 +6,25 @@ import { trackCache } from "@/lib/track-cache";
 const fetchTracks = async (
   startTransition: React.TransitionStartFunction,
   setProgress: React.Dispatch<React.SetStateAction<FetchProgress | null>>,
+  setError: React.Dispatch<React.SetStateAction<string | null>>,
   onComplete?: () => void,
 ) => {
   startTransition(async () => {
-    const tokenResult = await authClient.getAccessToken({ providerId: "spotify" });
-    if (tokenResult.error || !tokenResult.data) {
-      console.error("Failed to get access token");
-      return;
+    try {
+      setError(null);
+      const tokenResult = await authClient.getAccessToken({ providerId: "spotify" });
+      if (tokenResult.error || !tokenResult.data) {
+        setError("認証エラーが発生しました");
+        return;
+      }
+      const tracks = await fetchAllSavedTracks(tokenResult.data.accessToken, setProgress);
+      trackCache.set(tracks);
+      setProgress(null);
+      onComplete?.();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "曲の取得中にエラーが発生しました");
+      setProgress(null);
     }
-    const tracks = await fetchAllSavedTracks(tokenResult.data.accessToken, setProgress);
-    trackCache.set(tracks);
-    setProgress(null);
-    onComplete?.();
   });
 };
 
@@ -30,6 +37,7 @@ export const useSavedTracks = (onAutoFetchComplete?: () => void) => {
   const allTracks = cachedTracks ?? [];
   const [isLoadingTracks, startLoadingTransition] = useTransition();
   const [progress, setProgress] = useState<FetchProgress | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const onAutoFetchCompleteRef = useRef(onAutoFetchComplete);
   onAutoFetchCompleteRef.current = onAutoFetchComplete;
@@ -39,12 +47,14 @@ export const useSavedTracks = (onAutoFetchComplete?: () => void) => {
   useEffect(() => {
     if (cachedTracks !== null || autoFetchStarted.current) return;
     autoFetchStarted.current = true;
-    fetchTracks(startLoadingTransition, setProgress, () => onAutoFetchCompleteRef.current?.());
+    fetchTracks(startLoadingTransition, setProgress, setError, () =>
+      onAutoFetchCompleteRef.current?.(),
+    );
   }, [cachedTracks, startLoadingTransition]);
 
   const handleLoadTracks = (onComplete?: () => void) => {
-    fetchTracks(startLoadingTransition, setProgress, onComplete);
+    fetchTracks(startLoadingTransition, setProgress, setError, onComplete);
   };
 
-  return { allTracks, isLoadingTracks, handleLoadTracks, progress };
+  return { allTracks, isLoadingTracks, handleLoadTracks, progress, error };
 };
