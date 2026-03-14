@@ -8,22 +8,24 @@
     "start": "next start",
     "lint": "oxlint ./src",
     "format": "oxfmt --write ./src",
-    "check": "oxlint ./src && oxfmt --check ./src",
-    "typecheck": "tsgo"
+    "check": "oxlint ./src && oxfmt --check ./src && tsgo --noEmit",
+    "fix": "oxlint --fix ./src && oxfmt --write ./src",
+    "typecheck": "tsgo --noEmit"
   },
   "dependencies": {
-    "@base-ui/react": "^1.3.0",
+    "@heroui/react": "3.0.0-beta.8",
+    "@heroui/styles": "3.0.0-beta.8",
     "@spotify/web-api-ts-sdk": "^1.2.0",
     "better-auth": "^1.4.17",
-    "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.577.0",
     "next": "16.1.4",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "shadcn": "^4.0.6",
     "tailwind-merge": "^3.5.0",
-    "tw-animate-css": "^1.4.0"
+    "tailwind-variants": "^3.2.2",
+    "tw-animate-css": "^1.4.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
