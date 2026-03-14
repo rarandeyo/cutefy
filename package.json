@@ -11,7 +11,10 @@
     "format": "oxfmt --write ./src",
     "check": "oxlint ./src && oxfmt --check ./src && tsgo --noEmit",
     "fix": "oxlint --fix ./src && oxfmt --write ./src",
-    "typecheck": "tsgo --noEmit"
+    "typecheck": "tsgo --noEmit",
+    "cf:build": "opennextjs-cloudflare build",
+    "cf:deploy": "opennextjs-cloudflare deploy",
+    "preview": "opennextjs-cloudflare build && wrangler dev"
   },
   "dependencies": {
     "@heroui/react": "3.0.0-beta.8",
@@ -31,6 +34,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@opennextjs/cloudflare": "^1.17.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -40,6 +44,7 @@
     "oxfmt": "^0.40.0",
     "oxlint": "^1.55.0",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wrangler": "^4.73.0"
   }
 }
