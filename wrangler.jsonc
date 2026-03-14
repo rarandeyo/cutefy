@@ -8,12 +8,9 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
-  "routes": [
-    { "pattern": "rarandeyo.dev", "custom_domain": true }
-  ],
   "vars": {
-    "NEXT_PUBLIC_APP_URL": "https://rarandeyo.dev",
+    "NEXT_PUBLIC_APP_URL": "https://cutefy.rarandeyo.workers.dev",
     "NEXT_PUBLIC_SPOTIFY_CLIENT_ID": "752c53598add4beea5261c846b9568c1",
-    "BETTER_AUTH_URL": "https://rarandeyo.dev"
+    "BETTER_AUTH_URL": "https://cutefy.rarandeyo.workers.dev"
   }
 }
