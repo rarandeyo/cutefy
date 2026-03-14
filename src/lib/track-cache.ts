@@ -12,22 +12,27 @@ let listeners: (() => void)[] = [];
 let cachedResult: TrackWithAddedAt[] | null = null;
 let cachedRaw: string | null = null;
 
-function emitChange() {
+const emitChange = () => {
   cachedResult = null;
   cachedRaw = null;
   for (const listener of listeners) {
     listener();
   }
-}
+};
 
-function parseCache(raw: string): TrackWithAddedAt[] | null {
-  const data: CacheData = JSON.parse(raw);
-  if (Date.now() - data.cachedAt > CACHE_TTL) return null;
-  return data.tracks.map((track) => ({
-    ...track,
-    addedAt: new Date(track.addedAt),
-  }));
-}
+const parseCache = (raw: string): TrackWithAddedAt[] | null => {
+  try {
+    const data: CacheData = JSON.parse(raw);
+    if (Date.now() - data.cachedAt > CACHE_TTL) return null;
+    return data.tracks.map((track) => ({
+      ...track,
+      addedAt: new Date(track.addedAt),
+    }));
+  } catch {
+    localStorage.removeItem(CACHE_KEY);
+    return null;
+  }
+};
 
 export const trackCache = {
   subscribe(listener: () => void) {

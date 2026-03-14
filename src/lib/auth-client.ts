@@ -1,7 +1,8 @@
 import { createAuthClient } from "better-auth/react";
+import { clientEnv } from "./env";
 
 export const authClient = createAuthClient({
-  baseURL: process.env.NEXT_PUBLIC_APP_URL,
+  baseURL: clientEnv.NEXT_PUBLIC_APP_URL,
 });
 
 export const signInWithSpotify = () =>

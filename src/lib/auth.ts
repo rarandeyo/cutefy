@@ -1,8 +1,10 @@
 import { betterAuth } from "better-auth";
+import { clientEnv } from "./env";
+import { env } from "./env.server";
 
 export const auth = betterAuth({
-  baseURL: process.env.BETTER_AUTH_URL,
-  secret: process.env.BETTER_AUTH_SECRET,
+  baseURL: env.BETTER_AUTH_URL,
+  secret: env.BETTER_AUTH_SECRET,
   account: {
     storeAccountCookie: true,
   },
@@ -14,8 +16,8 @@ export const auth = betterAuth({
   },
   socialProviders: {
     spotify: {
-      clientId: process.env.SPOTIFY_CLIENT_ID as string,
-      clientSecret: process.env.SPOTIFY_CLIENT_SECRET as string,
+      clientId: clientEnv.NEXT_PUBLIC_SPOTIFY_CLIENT_ID,
+      clientSecret: env.SPOTIFY_CLIENT_SECRET,
       scope: [
         "user-read-email",
         "user-read-private",

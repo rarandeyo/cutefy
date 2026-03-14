@@ -1,6 +1,6 @@
 import { type AccessToken, type SavedTrack, SpotifyApi } from "@spotify/web-api-ts-sdk";
-
-const SPOTIFY_CLIENT_ID = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID ?? "";
+import { z } from "zod";
+import { clientEnv } from "./env";
 
 export type DateRange = {
   startDate: Date;
@@ -24,7 +24,7 @@ const createSpotifyClient = (accessToken: string, refreshToken?: string): Spotif
     expires_in: 3600,
     refresh_token: refreshToken ?? "",
   };
-  return SpotifyApi.withAccessToken(SPOTIFY_CLIENT_ID, token);
+  return SpotifyApi.withAccessToken(clientEnv.NEXT_PUBLIC_SPOTIFY_CLIENT_ID, token);
 };
 
 const mapSavedTrackToTrackWithAddedAt = (item: SavedTrack): TrackWithAddedAt => ({
@@ -40,16 +40,16 @@ const mapSavedTrackToTrackWithAddedAt = (item: SavedTrack): TrackWithAddedAt => 
 export const fetchAllSavedTracks = async (accessToken: string): Promise<TrackWithAddedAt[]> => {
   const sdk = createSpotifyClient(accessToken);
   const allTracks: TrackWithAddedAt[] = [];
-  const limit = 50;
+  const LIMIT = 50;
   let offset = 0;
   let total = 0;
 
   do {
-    const response = await sdk.currentUser.tracks.savedTracks(limit, offset);
+    const response = await sdk.currentUser.tracks.savedTracks(LIMIT, offset);
     const mappedTracks = response.items.map(mapSavedTrackToTrackWithAddedAt);
     allTracks.push(...mappedTracks);
     total = response.total;
-    offset += limit;
+    offset += LIMIT;
   } while (offset < total);
 
   return allTracks;
@@ -63,11 +63,17 @@ export const filterTracksByDateRange = (
     (track) => track.addedAt >= dateRange.startDate && track.addedAt <= dateRange.endDate,
   );
 
-const spotifyFetch = async (
-  accessToken: string,
-  url: string,
-  options?: RequestInit,
-): Promise<Response> => {
+type SpotifyFetchParams = {
+  accessToken: string;
+  url: string;
+  options?: RequestInit;
+};
+
+const spotifyFetch = async ({
+  accessToken,
+  url,
+  options,
+}: SpotifyFetchParams): Promise<Response> => {
   const response = await fetch(url, {
     ...options,
     headers: {
@@ -77,42 +83,69 @@ const spotifyFetch = async (
     },
   });
   if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(
-      `Spotify API error: ${response.status} ${error?.error?.message ?? response.statusText}`,
-    );
+    const errorBody: unknown = await response.json().catch(() => null);
+    const errorMessage =
+      errorBody !== null &&
+      typeof errorBody === "object" &&
+      "error" in errorBody &&
+      errorBody.error !== null &&
+      typeof errorBody.error === "object" &&
+      "message" in errorBody.error &&
+      typeof errorBody.error.message === "string"
+        ? errorBody.error.message
+        : response.statusText;
+    throw new Error(`Spotify API error: ${response.status} ${errorMessage}`);
   }
   return response;
 };
 
-export const createPlaylistFromTracks = async (
-  accessToken: string,
-  playlistName: string,
-  trackUris: string[],
-  isPublic = false,
-): Promise<{ playlistId: string; playlistUrl: string }> => {
+const playlistResponseSchema = z.object({
+  id: z.string(),
+  external_urls: z.object({
+    spotify: z.string(),
+  }),
+});
+
+type CreatePlaylistParams = {
+  accessToken: string;
+  playlistName: string;
+  trackUris: string[];
+  visibility?: "public" | "private";
+};
+
+export const createPlaylistFromTracks = async ({
+  accessToken,
+  playlistName,
+  trackUris,
+  visibility = "private",
+}: CreatePlaylistParams): Promise<{ playlistId: string; playlistUrl: string }> => {
   // Use /me/playlists instead of /users/{user_id}/playlists (required for Dev Mode since Feb 2026)
-  const playlistResponse = await spotifyFetch(
+  const playlistResponse = await spotifyFetch({
     accessToken,
-    "https://api.spotify.com/v1/me/playlists",
-    {
+    url: "https://api.spotify.com/v1/me/playlists",
+    options: {
       method: "POST",
       body: JSON.stringify({
         name: playlistName,
-        public: isPublic,
+        public: visibility === "public",
         description: `Created with Spotify Playlist Creator on ${new Date().toLocaleDateString()}`,
       }),
     },
-  );
-  const playlist = await playlistResponse.json();
+  });
+  const rawPlaylist = await playlistResponse.json();
+  const playlist = playlistResponseSchema.parse(rawPlaylist);
 
   // Use /playlists/{id}/items instead of /playlists/{id}/tracks (required for Dev Mode since Feb 2026)
-  const batchSize = 100;
-  for (let i = 0; i < trackUris.length; i += batchSize) {
-    const batch = trackUris.slice(i, i + batchSize);
-    await spotifyFetch(accessToken, `https://api.spotify.com/v1/playlists/${playlist.id}/items`, {
-      method: "POST",
-      body: JSON.stringify({ uris: batch }),
+  const BATCH_SIZE = 100;
+  for (let i = 0; i < trackUris.length; i += BATCH_SIZE) {
+    const batch = trackUris.slice(i, i + BATCH_SIZE);
+    await spotifyFetch({
+      accessToken,
+      url: `https://api.spotify.com/v1/playlists/${playlist.id}/items`,
+      options: {
+        method: "POST",
+        body: JSON.stringify({ uris: batch }),
+      },
     });
   }
 
