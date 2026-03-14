@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
+import type React from "react";
 import { Outfit, Geist } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -16,14 +17,14 @@ export const metadata: Metadata = {
   description: "お気に入りの曲から期間を指定してプレイリストを作成",
 };
 
-const RootLayout = ({
-  children,
-}: Readonly<{
+type RootLayoutProps = Readonly<{
   children: React.ReactNode;
-}>) => (
-  <html lang="ja" className={cn("font-sans", geist.variable)}>
-    <body className={`${outfit.variable} antialiased`}>{children}</body>
-  </html>
-);
+}>;
 
-export default RootLayout;
+export default function RootLayout({ children }: RootLayoutProps) {
+  return (
+    <html lang="ja" className={cn("font-sans", geist.variable)}>
+      <body className={cn(outfit.variable, "antialiased")}>{children}</body>
+    </html>
+  );
+}
