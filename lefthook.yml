@@ -1,0 +1,13 @@
+pre-commit:
+  parallel: true
+  jobs:
+    - name: lint
+      run: pnpm oxlint {staged_files}
+      glob: "*.{ts,tsx,js,jsx}"
+
+    - name: format
+      run: pnpm oxfmt --check {staged_files}
+      glob: "*.{ts,tsx,js,jsx}"
+
+    - name: typecheck
+      run: pnpm tsgo --noEmit
