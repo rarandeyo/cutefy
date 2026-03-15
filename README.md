@@ -2,6 +2,8 @@
 
 Spotify のお気に入り曲を期間で絞り込んで、サクッとプレイリストを作成できる Web アプリ。
 
+![Cutefy のスクリーンショット](docs/screenshot.png)
+
 ## Features
 
 - **Spotify ログイン** — OAuth でワンクリック認証
@@ -113,6 +115,10 @@ https://<your-worker>.workers.dev/api/auth/callback/spotify
 ```bash
 pnpm cf:deploy
 ```
+
+## 注意事項
+
+Spotify API は「Development Mode」の制限により、アプリ作成者が [Spotify Developer Dashboard](https://developer.spotify.com/dashboard) で明示的に登録したユーザーのみログインできます。そのため、公開されているデプロイ先に第三者がアクセスしてもログインはできません。自分用に使う場合は、上記のセットアップ手順に従って自身の Spotify App を作成してください。
 
 ## License
 
