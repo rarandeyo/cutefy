@@ -1,17 +1,18 @@
 import "server-only";
 
-type ServerEnvKey = "SPOTIFY_CLIENT_SECRET" | "BETTER_AUTH_URL" | "BETTER_AUTH_SECRET";
+import { createEnv } from "@t3-oss/env-nextjs";
+import { z } from "zod/v4";
 
-const requireEnv = (key: ServerEnvKey): string => {
-  const value = process.env[key];
-  if (!value) {
-    throw new Error(`Missing required environment variable: ${key}`);
-  }
-  return value;
-};
-
-export const env = {
-  SPOTIFY_CLIENT_SECRET: requireEnv("SPOTIFY_CLIENT_SECRET"),
-  BETTER_AUTH_URL: requireEnv("BETTER_AUTH_URL"),
-  BETTER_AUTH_SECRET: requireEnv("BETTER_AUTH_SECRET"),
-} as const;
+export const env = createEnv({
+  server: {
+    SPOTIFY_CLIENT_SECRET: z.string().min(1),
+    BETTER_AUTH_URL: z.url(),
+    BETTER_AUTH_SECRET: z.string().min(1),
+  },
+  runtimeEnv: {
+    SPOTIFY_CLIENT_SECRET: process.env.SPOTIFY_CLIENT_SECRET,
+    BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
+    BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
+  },
+  emptyStringAsUndefined: true,
+});
