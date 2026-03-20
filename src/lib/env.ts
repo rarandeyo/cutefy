@@ -1,14 +1,14 @@
-const requireClientEnv = (value: string | undefined, key: string): string => {
-  if (!value) {
-    throw new Error(`Missing required client environment variable: ${key}`);
-  }
-  return value;
-};
+import { createEnv } from "@t3-oss/env-nextjs";
+import { z } from "zod/v4";
 
-export const clientEnv = {
-  NEXT_PUBLIC_SPOTIFY_CLIENT_ID: requireClientEnv(
-    process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID,
-    "NEXT_PUBLIC_SPOTIFY_CLIENT_ID",
-  ),
-  NEXT_PUBLIC_APP_URL: requireClientEnv(process.env.NEXT_PUBLIC_APP_URL, "NEXT_PUBLIC_APP_URL"),
-} as const;
+export const clientEnv = createEnv({
+  client: {
+    NEXT_PUBLIC_SPOTIFY_CLIENT_ID: z.string().min(1),
+    NEXT_PUBLIC_APP_URL: z.url(),
+  },
+  runtimeEnv: {
+    NEXT_PUBLIC_SPOTIFY_CLIENT_ID: process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID,
+    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+  },
+  emptyStringAsUndefined: true,
+});

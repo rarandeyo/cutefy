@@ -46,6 +46,13 @@
       "rules": {
         "import/no-default-export": "off"
       }
+    },
+    {
+      "files": ["*.config.ts", "*.config.js"],
+      "rules": {
+        "import/no-default-export": "off",
+        "import/no-unassigned-import": "off"
+      }
     }
   ],
   "ignorePatterns": ["node_modules", ".next", "dist", "**/*.d.ts"]
