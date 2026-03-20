@@ -2,17 +2,6 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Commands
-
-```bash
-pnpm dev          # 開発サーバー起動 (Turbopack)
-pnpm build        # プロダクションビルド
-pnpm lint         # oxlint で lint
-pnpm format       # oxfmt でフォーマット
-pnpm check        # lint + format check + typecheck を一括実行
-pnpm fix          # lint fix + format fix
-pnpm typecheck    # tsgo --noEmit で型チェック
-```
 
 ## Tech Stack
 
