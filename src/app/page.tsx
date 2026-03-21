@@ -1,9 +1,11 @@
 import { headers } from "next/headers";
-import { auth } from "@/lib/auth";
+import { getAuth } from "@/lib/auth";
+
+export const dynamic = "force-dynamic";
 import { LoginSection } from "@/components/LoginSection";
 
 export default async function Page() {
-  const session = await auth.api.getSession({
+  const session = await getAuth().api.getSession({
     headers: await headers(),
   });
 
