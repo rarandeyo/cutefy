@@ -70,7 +70,7 @@ const syncPeriod = async (
 ): Promise<void> => {
   const dateRange = buildDateRange(period);
   const filteredTracks = filterTracksByDateRange(allTracks, dateRange);
-  const trackUris = filteredTracks.map((t) => t.uri);
+  const trackUris = filteredTracks.toReversed().map((t) => t.uri);
 
   if (trackUris.length === 0) {
     console.log(`[playlist-sync] No tracks for period ${period.key}, skipping`);
