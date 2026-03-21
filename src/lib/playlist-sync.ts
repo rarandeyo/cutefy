@@ -80,21 +80,27 @@ const syncPeriod = async (
   const existingPlaylistId = await getPlaylistId(db, period.key);
 
   if (existingPlaylistId) {
-    await replacePlaylistTracks({ accessToken, playlistId: existingPlaylistId, trackUris });
-    await savePlaylistId(db, period.key, existingPlaylistId);
-    console.log(`[playlist-sync] Updated playlist ${period.key}: ${trackUris.length} tracks`);
-  } else {
-    const playlistName = `Cutefy ${period.label}`;
-    const result = await createPlaylistFromTracks({
-      accessToken,
-      playlistName,
-      trackUris,
-    });
-    await savePlaylistId(db, period.key, result.playlistId);
-    console.log(
-      `[playlist-sync] Created playlist ${period.key} (${result.playlistId}): ${trackUris.length} tracks`,
-    );
+    try {
+      await replacePlaylistTracks({ accessToken, playlistId: existingPlaylistId, trackUris });
+      await savePlaylistId(db, period.key, existingPlaylistId);
+      console.log(`[playlist-sync] Updated playlist ${period.key}: ${trackUris.length} tracks`);
+      return;
+    } catch {
+      // Playlist was deleted on Spotify, recreate it
+      console.log(`[playlist-sync] Playlist ${period.key} not found, recreating`);
+    }
   }
+
+  const playlistName = `Cutefy ${period.label}`;
+  const result = await createPlaylistFromTracks({
+    accessToken,
+    playlistName,
+    trackUris,
+  });
+  await savePlaylistId(db, period.key, result.playlistId);
+  console.log(
+    `[playlist-sync] Created playlist ${period.key} (${result.playlistId}): ${trackUris.length} tracks`,
+  );
 };
 
 const isSyncEnabled = async (db: D1Database): Promise<boolean> => {
