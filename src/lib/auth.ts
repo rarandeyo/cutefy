@@ -9,9 +9,6 @@ export const getAuth = () =>
     baseURL: env.BETTER_AUTH_URL,
     secret: env.BETTER_AUTH_SECRET,
     database: getCloudflareContext().env.DB,
-    account: {
-      storeAccountCookie: true,
-    },
     session: {
       cookieCache: {
         enabled: true,
