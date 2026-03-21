@@ -8,10 +8,7 @@ export const getAuth = () =>
   betterAuth({
     baseURL: env.BETTER_AUTH_URL,
     secret: env.BETTER_AUTH_SECRET,
-    database: {
-      db: getCloudflareContext().env.DB,
-      type: "sqlite",
-    },
+    database: getCloudflareContext().env.DB,
     account: {
       storeAccountCookie: true,
     },
