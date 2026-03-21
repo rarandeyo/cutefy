@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "cutefy",
-  "main": ".open-next/worker.js",
+  "main": "./custom-worker.ts",
   "compatibility_date": "2024-12-30",
   "compatibility_flags": ["nodejs_compat"],
   "assets": {
@@ -12,5 +12,15 @@
     "NEXT_PUBLIC_APP_URL": "https://cutefy.rarandeyo.workers.dev",
     "NEXT_PUBLIC_SPOTIFY_CLIENT_ID": "752c53598add4beea5261c846b9568c1",
     "BETTER_AUTH_URL": "https://cutefy.rarandeyo.workers.dev"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "cutefy-db",
+      "database_id": "f2e4885f-4d49-4f19-b2d9-226f42a73db9"
+    }
+  ],
+  "triggers": {
+    "crons": ["0 0 * * *"]
   }
 }
