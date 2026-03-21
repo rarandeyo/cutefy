@@ -20,6 +20,7 @@
     "exactOptionalPropertyTypes": true,
     "allowUnusedLabels": false,
     "allowUnreachableCode": false,
+    "types": ["@cloudflare/workers-types"],
     "plugins": [
       {
         "name": "next"
