@@ -1,3 +1,4 @@
+import { z } from "zod";
 import {
   createPlaylistFromTracks,
   fetchAllSavedTracks,
@@ -6,6 +7,11 @@ import {
   type DateRange,
 } from "./spotify";
 import { refreshAccessToken } from "./spotify-token";
+
+const workerEnvSchema = z.object({
+  NEXT_PUBLIC_SPOTIFY_CLIENT_ID: z.string().min(1),
+  SPOTIFY_CLIENT_SECRET: z.string().min(1),
+});
 
 const SYNC_PERIODS = [
   { key: "1month", label: "1 Month", months: 1 },
@@ -96,12 +102,8 @@ export const updatePlaylists = async (env: CloudflareEnv): Promise<void> => {
 
   const refreshToken = await getRefreshToken(env.DB);
 
-  const clientId = env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID;
-  const clientSecret = env.SPOTIFY_CLIENT_SECRET;
-
-  if (!clientId || !clientSecret) {
-    throw new Error("Missing Spotify client credentials in environment");
-  }
+  const { NEXT_PUBLIC_SPOTIFY_CLIENT_ID: clientId, SPOTIFY_CLIENT_SECRET: clientSecret } =
+    workerEnvSchema.parse(env);
 
   const { accessToken, newRefreshToken } = await refreshAccessToken(
     refreshToken,
