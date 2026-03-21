@@ -163,3 +163,41 @@ export const createPlaylistFromTracks = async ({
     playlistUrl: playlist.external_urls.spotify,
   };
 };
+
+type ReplacePlaylistTracksParams = {
+  accessToken: string;
+  playlistId: string;
+  trackUris: string[];
+};
+
+export const replacePlaylistTracks = async ({
+  accessToken,
+  playlistId,
+  trackUris,
+}: ReplacePlaylistTracksParams): Promise<void> => {
+  const BATCH_SIZE = 100;
+  const firstBatch = trackUris.slice(0, BATCH_SIZE);
+
+  // Use /items instead of /tracks (required for Dev Mode since Feb 2026)
+  await spotifyFetch({
+    accessToken,
+    url: `https://api.spotify.com/v1/playlists/${playlistId}/items`,
+    options: {
+      method: "PUT",
+      body: JSON.stringify({ uris: firstBatch }),
+    },
+  });
+
+  // POST remaining batches
+  for (let i = BATCH_SIZE; i < trackUris.length; i += BATCH_SIZE) {
+    const batch = trackUris.slice(i, i + BATCH_SIZE);
+    await spotifyFetch({
+      accessToken,
+      url: `https://api.spotify.com/v1/playlists/${playlistId}/items`,
+      options: {
+        method: "POST",
+        body: JSON.stringify({ uris: batch }),
+      },
+    });
+  }
+};
