@@ -28,9 +28,10 @@ const buildDateRange = (period: SyncPeriod): DateRange => {
   return { startDate, endDate: now };
 };
 
-const getRefreshToken = async (db: D1Database): Promise<string> => {
+const getRefreshToken = async (db: D1Database, userId: string): Promise<string> => {
   const row = await db
-    .prepare("SELECT refreshToken FROM account WHERE providerId = 'spotify' LIMIT 1")
+    .prepare("SELECT refreshToken FROM account WHERE providerId = 'spotify' AND userId = ?")
+    .bind(userId)
     .first<{ refreshToken: string }>();
 
   if (!row?.refreshToken) {
@@ -40,10 +41,14 @@ const getRefreshToken = async (db: D1Database): Promise<string> => {
   return row.refreshToken;
 };
 
-const getPlaylistId = async (db: D1Database, period: string): Promise<string | null> => {
+const getPlaylistId = async (
+  db: D1Database,
+  userId: string,
+  period: string,
+): Promise<string | null> => {
   const row = await db
-    .prepare("SELECT playlist_id FROM playlist_sync WHERE period = ?")
-    .bind(period)
+    .prepare("SELECT playlist_id FROM playlist_sync WHERE user_id = ? AND period = ?")
+    .bind(userId, period)
     .first<{ playlist_id: string }>();
 
   return row?.playlist_id ?? null;
@@ -51,20 +56,22 @@ const getPlaylistId = async (db: D1Database, period: string): Promise<string | n
 
 const savePlaylistId = async (
   db: D1Database,
+  userId: string,
   period: string,
   playlistId: string,
 ): Promise<void> => {
   await db
     .prepare(
-      "INSERT OR REPLACE INTO playlist_sync (period, playlist_id, updated_at) VALUES (?, ?, ?)",
+      "INSERT OR REPLACE INTO playlist_sync (user_id, period, playlist_id, updated_at) VALUES (?, ?, ?, ?)",
     )
-    .bind(period, playlistId, Date.now())
+    .bind(userId, period, playlistId, Date.now())
     .run();
 };
 
 const syncPeriod = async (
   accessToken: string,
   db: D1Database,
+  userId: string,
   period: SyncPeriod,
   allTracks: Awaited<ReturnType<typeof fetchAllSavedTracks>>,
 ): Promise<void> => {
@@ -77,12 +84,12 @@ const syncPeriod = async (
     return;
   }
 
-  const existingPlaylistId = await getPlaylistId(db, period.key);
+  const existingPlaylistId = await getPlaylistId(db, userId, period.key);
 
   if (existingPlaylistId) {
     try {
       await replacePlaylistTracks({ accessToken, playlistId: existingPlaylistId, trackUris });
-      await savePlaylistId(db, period.key, existingPlaylistId);
+      await savePlaylistId(db, userId, period.key, existingPlaylistId);
       console.log(`[playlist-sync] Updated playlist ${period.key}: ${trackUris.length} tracks`);
       return;
     } catch {
@@ -97,38 +104,29 @@ const syncPeriod = async (
     playlistName,
     trackUris,
   });
-  await savePlaylistId(db, period.key, result.playlistId);
+  await savePlaylistId(db, userId, period.key, result.playlistId);
   console.log(
     `[playlist-sync] Created playlist ${period.key} (${result.playlistId}): ${trackUris.length} tracks`,
   );
 };
 
-const isSyncEnabled = async (db: D1Database): Promise<boolean> => {
-  const row = await db
-    .prepare("SELECT enabled FROM sync_settings WHERE id = 'default'")
-    .first<{ enabled: number }>();
-  return row?.enabled === 1;
+const getEnabledUserIds = async (db: D1Database): Promise<string[]> => {
+  const { results } = await db
+    .prepare("SELECT user_id FROM sync_settings WHERE enabled = 1")
+    .all<{ user_id: string }>();
+
+  return results.map((row) => row.user_id);
 };
 
-export const updatePlaylists = async (
+const syncUserPlaylists = async (
   env: CloudflareEnv,
-  { skipEnabledCheck = false }: { skipEnabledCheck?: boolean } = {},
+  clientId: string,
+  clientSecret: string,
+  userId: string,
 ): Promise<void> => {
-  if (!skipEnabledCheck) {
-    const enabled = await isSyncEnabled(env.DB);
-    if (!enabled) {
-      console.log("[playlist-sync] Sync is disabled, skipping");
-      return;
-    }
-  }
+  console.log(`[playlist-sync] Syncing playlists for user ${userId}`);
 
-  console.log("[playlist-sync] Starting playlist sync");
-
-  const refreshToken = await getRefreshToken(env.DB);
-
-  const { NEXT_PUBLIC_SPOTIFY_CLIENT_ID: clientId, SPOTIFY_CLIENT_SECRET: clientSecret } =
-    workerEnvSchema.parse(env);
-
+  const refreshToken = await getRefreshToken(env.DB, userId);
   const { accessToken, newRefreshToken } = await refreshAccessToken(
     refreshToken,
     clientId,
@@ -137,20 +135,53 @@ export const updatePlaylists = async (
 
   // Update refresh token in DB if Spotify rotated it
   if (newRefreshToken) {
-    await env.DB.prepare("UPDATE account SET refreshToken = ? WHERE providerId = 'spotify'")
-      .bind(newRefreshToken)
+    await env.DB.prepare(
+      "UPDATE account SET refreshToken = ? WHERE providerId = 'spotify' AND userId = ?",
+    )
+      .bind(newRefreshToken, userId)
       .run();
-    console.log("[playlist-sync] Refresh token rotated and updated in DB");
+    console.log(`[playlist-sync] Refresh token rotated and updated for user ${userId}`);
   }
 
   const allTracks = await fetchAllSavedTracks(accessToken);
-  console.log(`[playlist-sync] Fetched ${allTracks.length} saved tracks`);
+  console.log(`[playlist-sync] Fetched ${allTracks.length} saved tracks for user ${userId}`);
 
   for (const period of SYNC_PERIODS) {
     try {
-      await syncPeriod(accessToken, env.DB, period, allTracks);
+      await syncPeriod(accessToken, env.DB, userId, period, allTracks);
     } catch (err) {
-      console.error(`[playlist-sync] Failed to sync period ${period.key}:`, err);
+      console.error(`[playlist-sync] Failed to sync period ${period.key} for user ${userId}:`, err);
+    }
+  }
+};
+
+export const updatePlaylists = async (
+  env: CloudflareEnv,
+  { skipEnabledCheck = false, userId }: { skipEnabledCheck?: boolean; userId?: string } = {},
+): Promise<void> => {
+  const { NEXT_PUBLIC_SPOTIFY_CLIENT_ID: clientId, SPOTIFY_CLIENT_SECRET: clientSecret } =
+    workerEnvSchema.parse(env);
+
+  // When called from the API with a specific userId, sync only that user
+  if (skipEnabledCheck && userId) {
+    await syncUserPlaylists(env, clientId, clientSecret, userId);
+    return;
+  }
+
+  // Cron path: sync all enabled users
+  const enabledUserIds = await getEnabledUserIds(env.DB);
+  if (enabledUserIds.length === 0) {
+    console.log("[playlist-sync] No users with sync enabled, skipping");
+    return;
+  }
+
+  console.log(`[playlist-sync] Starting playlist sync for ${enabledUserIds.length} user(s)`);
+
+  for (const uid of enabledUserIds) {
+    try {
+      await syncUserPlaylists(env, clientId, clientSecret, uid);
+    } catch (err) {
+      console.error(`[playlist-sync] Failed to sync user ${uid}:`, err);
     }
   }
 

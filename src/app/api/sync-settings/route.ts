@@ -1,4 +1,5 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { z } from "zod";
 import { getAuth } from "@/lib/auth";
 import { updatePlaylists } from "@/lib/playlist-sync";
 
@@ -10,51 +11,57 @@ const requireSession = async (request: Request) => {
   return session;
 };
 
+const syncSettingsBodySchema = z.object({
+  enabled: z.boolean(),
+});
+
 export async function GET(request: Request) {
+  let session: Awaited<ReturnType<typeof requireSession>>;
   try {
-    await requireSession(request);
+    session = await requireSession(request);
   } catch {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const { env } = getCloudflareContext();
-  const row = await env.DB.prepare("SELECT enabled FROM sync_settings WHERE id = 'default'").first<{
-    enabled: number;
-  }>();
+  const row = await env.DB.prepare("SELECT enabled FROM sync_settings WHERE user_id = ?")
+    .bind(session.user.id)
+    .first<{ enabled: number }>();
 
   return Response.json({ enabled: row?.enabled === 1 });
 }
 
 export async function POST(request: Request) {
+  let session: Awaited<ReturnType<typeof requireSession>>;
   try {
-    await requireSession(request);
+    session = await requireSession(request);
   } catch {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body: unknown = await request.json();
-  if (typeof body !== "object" || body === null || !("enabled" in body)) {
+  const parseResult = syncSettingsBodySchema.safeParse(await request.json());
+  if (!parseResult.success) {
     return Response.json({ error: "Invalid body" }, { status: 400 });
   }
 
-  const enabled = (body as { enabled: boolean }).enabled;
+  const { enabled } = parseResult.data;
   const { env } = getCloudflareContext();
 
   await env.DB.prepare(
-    "INSERT OR REPLACE INTO sync_settings (id, enabled, updated_at) VALUES ('default', ?, ?)",
+    "INSERT OR REPLACE INTO sync_settings (user_id, enabled, updated_at) VALUES (?, ?, ?)",
   )
-    .bind(enabled ? 1 : 0, Date.now())
+    .bind(session.user.id, enabled ? 1 : 0, Date.now())
     .run();
 
   // Run initial sync when enabling
   if (enabled) {
     try {
-      await updatePlaylists(env, { skipEnabledCheck: true });
+      await updatePlaylists(env, { skipEnabledCheck: true, userId: session.user.id });
     } catch (err) {
       console.error("[sync-settings] Initial sync failed:", err);
       return Response.json({
         enabled: true,
-        syncError: err instanceof Error ? err.message : "Sync failed",
+        syncError: "Initial sync failed",
       });
     }
   }
