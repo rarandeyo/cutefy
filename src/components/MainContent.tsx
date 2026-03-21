@@ -10,6 +10,7 @@ import {
   ListMusic,
   LogOut,
   Music,
+  Settings,
   Sparkles,
 } from "lucide-react";
 
@@ -83,6 +84,13 @@ export const MainContent: React.FC = () => {
           >
             <Github className="h-4 w-4" />
           </a>
+          <Link
+            href="/app/settings"
+            aria-label="設定"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 text-foreground transition-colors hover:bg-white/20"
+          >
+            <Settings className="h-4 w-4" />
+          </Link>
           <Button
             isIconOnly
             variant="ghost"

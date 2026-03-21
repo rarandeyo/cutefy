@@ -97,7 +97,25 @@ const syncPeriod = async (
   }
 };
 
-export const updatePlaylists = async (env: CloudflareEnv): Promise<void> => {
+const isSyncEnabled = async (db: D1Database): Promise<boolean> => {
+  const row = await db
+    .prepare("SELECT enabled FROM sync_settings WHERE id = 'default'")
+    .first<{ enabled: number }>();
+  return row?.enabled === 1;
+};
+
+export const updatePlaylists = async (
+  env: CloudflareEnv,
+  { skipEnabledCheck = false }: { skipEnabledCheck?: boolean } = {},
+): Promise<void> => {
+  if (!skipEnabledCheck) {
+    const enabled = await isSyncEnabled(env.DB);
+    if (!enabled) {
+      console.log("[playlist-sync] Sync is disabled, skipping");
+      return;
+    }
+  }
+
   console.log("[playlist-sync] Starting playlist sync");
 
   const refreshToken = await getRefreshToken(env.DB);
