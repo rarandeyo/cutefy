@@ -39,7 +39,11 @@ export const SettingsContent: React.FC = () => {
             {state.status === "loading" ? (
               <Loader2 className="h-5 w-5 animate-spin text-foreground/40" />
             ) : (
-              <Switch isSelected={isEnabled} isDisabled={isToggling} onChange={handleToggle} />
+              <Switch isSelected={isEnabled} isDisabled={isToggling} onChange={handleToggle}>
+                <Switch.Control>
+                  <Switch.Thumb />
+                </Switch.Control>
+              </Switch>
             )}
           </div>
 
