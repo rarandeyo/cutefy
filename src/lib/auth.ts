@@ -3,10 +3,8 @@ import { betterAuth } from "better-auth";
 import { clientEnv } from "./env";
 import { env } from "./env.server";
 
-// Lazy singleton: getCloudflareContext() is only available at request time, not during build
-let _auth: ReturnType<typeof createAuth> | null = null;
-
-const createAuth = () =>
+// Called per-request: getCloudflareContext() is only available at request time, not during build
+export const getAuth = () =>
   betterAuth({
     baseURL: env.BETTER_AUTH_URL,
     secret: env.BETTER_AUTH_SECRET,
@@ -37,10 +35,3 @@ const createAuth = () =>
       },
     },
   });
-
-export const getAuth = () => {
-  if (!_auth) {
-    _auth = createAuth();
-  }
-  return _auth;
-};
