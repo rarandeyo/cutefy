@@ -91,7 +91,7 @@ async function fetchFallback() {
       console.error(`# Using fallback: ${LLMS_TXT_URL}`);
 
       return {
-        components: components.sort(),
+        components: components.toSorted(),
         count: components.length,
         latestVersion: "unknown",
       };
