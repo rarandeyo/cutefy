@@ -1,7 +1,11 @@
 import { useState, useTransition } from "react";
 import type { CalendarDate } from "@internationalized/date";
 import { authClient } from "@/lib/auth-client";
-import { createPlaylistFromTracks, type TrackWithAddedAt } from "@/lib/spotify";
+import {
+  createPlaylistFromTracks,
+  createSpotifyClient,
+  type TrackWithAddedAt,
+} from "@/lib/spotify";
 import { INITIAL_PLAYLIST_STATE, type PlaylistState } from "@/types/playlist";
 
 const formatCalendarDate = (d: CalendarDate) => `${d.year}/${String(d.month).padStart(2, "0")}`;
@@ -39,8 +43,9 @@ export const usePlaylistCreation = (
         }
 
         const trackUris = filteredTracks.map((t) => t.uri);
+        const sdk = createSpotifyClient(tokenResult.data.accessToken);
         const result = await createPlaylistFromTracks({
-          accessToken: tokenResult.data.accessToken,
+          sdk,
           playlistName: playlistName.trim(),
           trackUris,
         });

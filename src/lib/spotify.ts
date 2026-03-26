@@ -1,5 +1,4 @@
 import { type AccessToken, type SavedTrack, SpotifyApi } from "@spotify/web-api-ts-sdk";
-import { z } from "zod";
 import { clientEnv } from "./env";
 
 export type DateRange = {
@@ -22,7 +21,7 @@ export type FetchProgress = {
   total: number;
 };
 
-const createSpotifyClient = (accessToken: string, refreshToken?: string): SpotifyApi => {
+export const createSpotifyClient = (accessToken: string, refreshToken?: string): SpotifyApi => {
   const token: AccessToken = {
     access_token: accessToken,
     token_type: "Bearer",
@@ -72,51 +71,8 @@ export const filterTracksByDateRange = (
     (track) => track.addedAt >= dateRange.startDate && track.addedAt <= dateRange.endDate,
   );
 
-type SpotifyFetchParams = {
-  accessToken: string;
-  url: string;
-  options?: RequestInit;
-};
-
-const spotifyFetch = async ({
-  accessToken,
-  url,
-  options,
-}: SpotifyFetchParams): Promise<Response> => {
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-      ...options?.headers,
-    },
-  });
-  if (!response.ok) {
-    const errorBody: unknown = await response.json().catch(() => null);
-    const errorMessage =
-      errorBody !== null &&
-      typeof errorBody === "object" &&
-      "error" in errorBody &&
-      errorBody.error !== null &&
-      typeof errorBody.error === "object" &&
-      "message" in errorBody.error &&
-      typeof errorBody.error.message === "string"
-        ? errorBody.error.message
-        : response.statusText;
-    throw new Error(`Spotify API error: ${response.status} ${errorMessage}`);
-  }
-  return response;
-};
-
-const playlistResponseSchema = z.object({
-  id: z.string(),
-  external_urls: z.object({
-    spotify: z.string(),
-  }),
-});
-
 type CreatePlaylistParams = {
-  accessToken: string;
+  sdk: SpotifyApi;
   playlistName: string;
   trackUris: string[];
   description?: string;
@@ -124,40 +80,22 @@ type CreatePlaylistParams = {
 };
 
 export const createPlaylistFromTracks = async ({
-  accessToken,
+  sdk,
   playlistName,
   trackUris,
   description,
   visibility = "private",
 }: CreatePlaylistParams): Promise<{ playlistId: string; playlistUrl: string }> => {
-  // Use /me/playlists instead of /users/{user_id}/playlists (required for Dev Mode since Feb 2026)
-  const playlistResponse = await spotifyFetch({
-    accessToken,
-    url: "https://api.spotify.com/v1/me/playlists",
-    options: {
-      method: "POST",
-      body: JSON.stringify({
-        name: playlistName,
-        public: visibility === "public",
-        description: description ?? `Created with Cutefy on ${new Date().toLocaleDateString()}`,
-      }),
-    },
+  const playlist = await sdk.currentUser.playlists.createPlaylist({
+    name: playlistName,
+    public: visibility === "public",
+    description: description ?? `Created with Cutefy on ${new Date().toLocaleDateString()}`,
   });
-  const rawPlaylist = await playlistResponse.json();
-  const playlist = playlistResponseSchema.parse(rawPlaylist);
 
-  // Use /playlists/{id}/items instead of /playlists/{id}/tracks (required for Dev Mode since Feb 2026)
   const BATCH_SIZE = 100;
   for (let i = 0; i < trackUris.length; i += BATCH_SIZE) {
     const batch = trackUris.slice(i, i + BATCH_SIZE);
-    await spotifyFetch({
-      accessToken,
-      url: `https://api.spotify.com/v1/playlists/${playlist.id}/items`,
-      options: {
-        method: "POST",
-        body: JSON.stringify({ uris: batch }),
-      },
-    });
+    await sdk.playlists.addItemsToPlaylist(playlist.id, batch);
   }
 
   return {
@@ -167,60 +105,37 @@ export const createPlaylistFromTracks = async ({
 };
 
 type ReplacePlaylistTracksParams = {
-  accessToken: string;
+  sdk: SpotifyApi;
   playlistId: string;
   trackUris: string[];
 };
 
 export const replacePlaylistTracks = async ({
-  accessToken,
+  sdk,
   playlistId,
   trackUris,
 }: ReplacePlaylistTracksParams): Promise<void> => {
   const BATCH_SIZE = 100;
   const firstBatch = trackUris.slice(0, BATCH_SIZE);
 
-  // Use /items instead of /tracks (required for Dev Mode since Feb 2026)
-  await spotifyFetch({
-    accessToken,
-    url: `https://api.spotify.com/v1/playlists/${playlistId}/items`,
-    options: {
-      method: "PUT",
-      body: JSON.stringify({ uris: firstBatch }),
-    },
-  });
+  await sdk.playlists.updatePlaylistItems(playlistId, { uris: firstBatch });
 
-  // POST remaining batches
   for (let i = BATCH_SIZE; i < trackUris.length; i += BATCH_SIZE) {
     const batch = trackUris.slice(i, i + BATCH_SIZE);
-    await spotifyFetch({
-      accessToken,
-      url: `https://api.spotify.com/v1/playlists/${playlistId}/items`,
-      options: {
-        method: "POST",
-        body: JSON.stringify({ uris: batch }),
-      },
-    });
+    await sdk.playlists.addItemsToPlaylist(playlistId, batch);
   }
 };
 
 type UpdatePlaylistDetailsParams = {
-  accessToken: string;
+  sdk: SpotifyApi;
   playlistId: string;
   description: string;
 };
 
 export const updatePlaylistDetails = async ({
-  accessToken,
+  sdk,
   playlistId,
   description,
 }: UpdatePlaylistDetailsParams): Promise<void> => {
-  await spotifyFetch({
-    accessToken,
-    url: `https://api.spotify.com/v1/playlists/${playlistId}`,
-    options: {
-      method: "PUT",
-      body: JSON.stringify({ description }),
-    },
-  });
+  await sdk.playlists.changePlaylistDetails(playlistId, { description });
 };

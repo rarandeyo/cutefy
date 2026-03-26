@@ -1,6 +1,8 @@
+import type { SpotifyApi } from "@spotify/web-api-ts-sdk";
 import { z } from "zod";
 import {
   createPlaylistFromTracks,
+  createSpotifyClient,
   fetchAllSavedTracks,
   filterTracksByDateRange,
   replacePlaylistTracks,
@@ -76,7 +78,7 @@ const savePlaylistId = async (
 };
 
 const syncPeriod = async (
-  accessToken: string,
+  sdk: SpotifyApi,
   db: D1Database,
   userId: string,
   period: SyncPeriod,
@@ -97,8 +99,8 @@ const syncPeriod = async (
 
   if (existingPlaylistId) {
     try {
-      await replacePlaylistTracks({ accessToken, playlistId: existingPlaylistId, trackUris });
-      await updatePlaylistDetails({ accessToken, playlistId: existingPlaylistId, description });
+      await replacePlaylistTracks({ sdk, playlistId: existingPlaylistId, trackUris });
+      await updatePlaylistDetails({ sdk, playlistId: existingPlaylistId, description });
       await savePlaylistId(db, userId, period.key, existingPlaylistId);
       console.log(`[playlist-sync] Updated playlist ${period.key}: ${trackUris.length} tracks`);
       return;
@@ -110,7 +112,7 @@ const syncPeriod = async (
 
   const playlistName = `Cutefy ${period.label}`;
   const result = await createPlaylistFromTracks({
-    accessToken,
+    sdk,
     playlistName,
     trackUris,
     description,
@@ -154,12 +156,13 @@ const syncUserPlaylists = async (
     console.log(`[playlist-sync] Refresh token rotated and updated for user ${userId}`);
   }
 
+  const sdk = createSpotifyClient(accessToken);
   const allTracks = await fetchAllSavedTracks(accessToken);
   console.log(`[playlist-sync] Fetched ${allTracks.length} saved tracks for user ${userId}`);
 
   for (const period of SYNC_PERIODS) {
     try {
-      await syncPeriod(accessToken, env.DB, userId, period, allTracks);
+      await syncPeriod(sdk, env.DB, userId, period, allTracks);
     } catch (err) {
       console.error(`[playlist-sync] Failed to sync period ${period.key} for user ${userId}:`, err);
     }

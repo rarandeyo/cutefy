@@ -20,7 +20,7 @@
     "@heroui/react": "3.0.0-beta.8",
     "@heroui/styles": "3.0.0-beta.8",
     "@internationalized/date": "^3.12.0",
-    "@spotify/web-api-ts-sdk": "^1.2.0",
+    "@spotify/web-api-ts-sdk": "github:rarandeyo/spotify-web-api-ts-sdk",
     "@t3-oss/env-nextjs": "^0.13.10",
     "better-auth": "^1.4.17",
     "clsx": "^2.1.1",
@@ -36,6 +36,7 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": [
+      "@rarandeyo/spotify-web-api-ts-sdk",
       "esbuild",
       "lefthook",
       "sharp",
