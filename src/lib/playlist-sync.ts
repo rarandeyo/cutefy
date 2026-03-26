@@ -4,6 +4,7 @@ import {
   fetchAllSavedTracks,
   filterTracksByDateRange,
   replacePlaylistTracks,
+  updatePlaylistDetails,
   type DateRange,
 } from "./spotify";
 import { refreshAccessToken } from "./spotify-token";
@@ -20,6 +21,12 @@ const SYNC_PERIODS = [
 ] as const;
 
 type SyncPeriod = (typeof SYNC_PERIODS)[number];
+
+const buildPlaylistDescription = (): string => {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const date = new Date().toISOString().slice(0, 10);
+  return `Created by Cutefy (${appUrl}) · Updated at ${date}`;
+};
 
 const buildDateRange = (period: SyncPeriod): DateRange => {
   const now = new Date();
@@ -86,9 +93,12 @@ const syncPeriod = async (
 
   const existingPlaylistId = await getPlaylistId(db, userId, period.key);
 
+  const description = buildPlaylistDescription();
+
   if (existingPlaylistId) {
     try {
       await replacePlaylistTracks({ accessToken, playlistId: existingPlaylistId, trackUris });
+      await updatePlaylistDetails({ accessToken, playlistId: existingPlaylistId, description });
       await savePlaylistId(db, userId, period.key, existingPlaylistId);
       console.log(`[playlist-sync] Updated playlist ${period.key}: ${trackUris.length} tracks`);
       return;
@@ -103,6 +113,7 @@ const syncPeriod = async (
     accessToken,
     playlistName,
     trackUris,
+    description,
   });
   await savePlaylistId(db, userId, period.key, result.playlistId);
   console.log(
