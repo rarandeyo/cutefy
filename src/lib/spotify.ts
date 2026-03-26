@@ -119,6 +119,7 @@ type CreatePlaylistParams = {
   accessToken: string;
   playlistName: string;
   trackUris: string[];
+  description?: string;
   visibility?: "public" | "private";
 };
 
@@ -126,6 +127,7 @@ export const createPlaylistFromTracks = async ({
   accessToken,
   playlistName,
   trackUris,
+  description,
   visibility = "private",
 }: CreatePlaylistParams): Promise<{ playlistId: string; playlistUrl: string }> => {
   // Use /me/playlists instead of /users/{user_id}/playlists (required for Dev Mode since Feb 2026)
@@ -137,7 +139,7 @@ export const createPlaylistFromTracks = async ({
       body: JSON.stringify({
         name: playlistName,
         public: visibility === "public",
-        description: `Created with Cutefy on ${new Date().toLocaleDateString()}`,
+        description: description ?? `Created with Cutefy on ${new Date().toLocaleDateString()}`,
       }),
     },
   });
@@ -200,4 +202,25 @@ export const replacePlaylistTracks = async ({
       },
     });
   }
+};
+
+type UpdatePlaylistDetailsParams = {
+  accessToken: string;
+  playlistId: string;
+  description: string;
+};
+
+export const updatePlaylistDetails = async ({
+  accessToken,
+  playlistId,
+  description,
+}: UpdatePlaylistDetailsParams): Promise<void> => {
+  await spotifyFetch({
+    accessToken,
+    url: `https://api.spotify.com/v1/playlists/${playlistId}`,
+    options: {
+      method: "PUT",
+      body: JSON.stringify({ description }),
+    },
+  });
 };
