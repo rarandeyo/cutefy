@@ -1,6 +1,7 @@
 import { useState, useTransition } from "react";
 import type { CalendarDate } from "@internationalized/date";
 import { authClient } from "@/lib/auth-client";
+import { clientEnv } from "@/lib/env";
 import {
   createPlaylistFromTracks,
   createSpotifyClient,
@@ -43,7 +44,10 @@ export const usePlaylistCreation = (
         }
 
         const trackUris = filteredTracks.map((t) => t.uri);
-        const sdk = createSpotifyClient(tokenResult.data.accessToken);
+        const sdk = createSpotifyClient({
+          clientId: clientEnv.NEXT_PUBLIC_SPOTIFY_CLIENT_ID,
+          accessToken: tokenResult.data.accessToken,
+        });
         const result = await createPlaylistFromTracks({
           sdk,
           playlistName: playlistName.trim(),

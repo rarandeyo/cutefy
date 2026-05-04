@@ -8,6 +8,7 @@ import {
   replacePlaylistTracks,
   updatePlaylistDetails,
   type DateRange,
+  type TrackWithAddedAt,
 } from "./spotify";
 import { refreshAccessToken } from "./spotify-token";
 
@@ -83,7 +84,7 @@ const syncPeriod = async (
   db: D1Database,
   userId: string,
   period: SyncPeriod,
-  allTracks: Awaited<ReturnType<typeof fetchAllSavedTracks>>,
+  allTracks: TrackWithAddedAt[],
 ): Promise<void> => {
   const dateRange = buildDateRange(period);
   const filteredTracks = filterTracksByDateRange(allTracks, dateRange);
@@ -157,8 +158,8 @@ const syncUserPlaylists = async (
     console.log(`[playlist-sync] Refresh token rotated and updated for user ${userId}`);
   }
 
-  const sdk = createSpotifyClient(accessToken);
-  const allTracks = await fetchAllSavedTracks(accessToken);
+  const sdk = createSpotifyClient({ clientId, accessToken });
+  const allTracks = await fetchAllSavedTracks(sdk);
   console.log(`[playlist-sync] Fetched ${allTracks.length} saved tracks for user ${userId}`);
 
   for (const period of SYNC_PERIODS) {
