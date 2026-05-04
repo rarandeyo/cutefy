@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { authClient } from "@/lib/auth-client";
-import { fetchAllSavedTracks, type FetchProgress } from "@/lib/spotify";
+import { clientEnv } from "@/lib/env";
+import { createSpotifyClient, fetchAllSavedTracks, type FetchProgress } from "@/lib/spotify";
 import { trackCache } from "@/lib/track-cache";
 
 const fetchTracks = async (
@@ -17,7 +18,11 @@ const fetchTracks = async (
         setError("認証エラーが発生しました");
         return;
       }
-      const tracks = await fetchAllSavedTracks(tokenResult.data.accessToken, setProgress);
+      const sdk = createSpotifyClient({
+        clientId: clientEnv.NEXT_PUBLIC_SPOTIFY_CLIENT_ID,
+        accessToken: tokenResult.data.accessToken,
+      });
+      const tracks = await fetchAllSavedTracks(sdk, setProgress);
       trackCache.set(tracks);
       setProgress(null);
       onComplete?.();

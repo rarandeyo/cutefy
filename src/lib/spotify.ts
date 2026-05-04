@@ -1,5 +1,4 @@
 import { type AccessToken, type SavedTrack, SpotifyApi } from "@spotify/web-api-ts-sdk";
-import { clientEnv } from "./env";
 
 export type DateRange = {
   startDate: Date;
@@ -21,14 +20,24 @@ export type FetchProgress = {
   total: number;
 };
 
-export const createSpotifyClient = (accessToken: string, refreshToken?: string): SpotifyApi => {
+type CreateSpotifyClientParams = {
+  clientId: string;
+  accessToken: string;
+  refreshToken?: string;
+};
+
+export const createSpotifyClient = ({
+  clientId,
+  accessToken,
+  refreshToken,
+}: CreateSpotifyClientParams): SpotifyApi => {
   const token: AccessToken = {
     access_token: accessToken,
     token_type: "Bearer",
     expires_in: 3600,
     refresh_token: refreshToken ?? "",
   };
-  return SpotifyApi.withAccessToken(clientEnv.NEXT_PUBLIC_SPOTIFY_CLIENT_ID, token);
+  return SpotifyApi.withAccessToken(clientId, token);
 };
 
 const mapSavedTrackToTrackWithAddedAt = (item: SavedTrack): TrackWithAddedAt => ({
@@ -42,10 +51,9 @@ const mapSavedTrackToTrackWithAddedAt = (item: SavedTrack): TrackWithAddedAt => 
 });
 
 export const fetchAllSavedTracks = async (
-  accessToken: string,
+  sdk: SpotifyApi,
   onProgress?: (progress: FetchProgress) => void,
 ): Promise<TrackWithAddedAt[]> => {
-  const sdk = createSpotifyClient(accessToken);
   const allTracks: TrackWithAddedAt[] = [];
   const LIMIT = 50;
   let offset = 0;
