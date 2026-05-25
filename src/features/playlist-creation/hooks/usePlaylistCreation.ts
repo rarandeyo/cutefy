@@ -2,12 +2,13 @@ import { useState, useTransition } from "react";
 import type { CalendarDate } from "@internationalized/date";
 import { authClient } from "@/lib/auth-client";
 import { clientEnv } from "@/lib/env";
+import type { CalendarDateRange } from "@/features/playlist-creation/hooks/useDateFilter";
 import {
   createPlaylistFromTracks,
   createSpotifyClient,
   type TrackWithAddedAt,
 } from "@/lib/spotify";
-import { INITIAL_PLAYLIST_STATE, type PlaylistState } from "@/types/playlist";
+import { INITIAL_PLAYLIST_STATE, type PlaylistState } from "@/features/playlist-creation/types";
 
 const formatCalendarDate = (d: CalendarDate) => `${d.year}/${String(d.month).padStart(2, "0")}`;
 
@@ -15,8 +16,8 @@ const generateDefaultName = (start: CalendarDate, end: CalendarDate): string =>
   `お気に入り ${formatCalendarDate(start)} - ${formatCalendarDate(end)}`;
 
 export const usePlaylistCreation = (
-  filteredTracks: TrackWithAddedAt[],
-  dateRange: { startDate: CalendarDate; endDate: CalendarDate },
+  filteredTracks: ReadonlyArray<TrackWithAddedAt>,
+  dateRange: CalendarDateRange,
 ) => {
   const [manualName, setManualName] = useState("");
   const [isNameManuallySet, setIsNameManuallySet] = useState(false);

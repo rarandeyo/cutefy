@@ -11,18 +11,21 @@ import {
 } from "@heroui/react";
 import { ArrowDownUp } from "lucide-react";
 import type { TrackWithAddedAt } from "@/lib/spotify";
-import type { SortOrder } from "@/hooks/useDateFilter";
+import type {
+  CalendarDateRange,
+  SortOrder,
+} from "@/features/playlist-creation/hooks/useDateFilter";
 
-type SelectDateStepProps = {
-  dateRange: { startDate: CalendarDate; endDate: CalendarDate };
+type SelectDateStepProps = Readonly<{
+  dateRange: CalendarDateRange;
   onDateRangeChange: (value: { start: CalendarDate; end: CalendarDate } | null) => void;
   onApplyPreset: (months: number) => void;
   activePreset: number | null;
   dateError: string | null;
-  filteredTracks: TrackWithAddedAt[];
+  filteredTracks: ReadonlyArray<TrackWithAddedAt>;
   sortOrder: SortOrder;
   onToggleSortOrder: () => void;
-};
+}>;
 
 const PRESETS = [
   { label: "1ヶ月", months: 1 },

@@ -15,7 +15,10 @@ import { refreshAccessToken } from "./spotify-token";
 const workerEnvSchema = z.object({
   NEXT_PUBLIC_SPOTIFY_CLIENT_ID: z.string().min(1),
   SPOTIFY_CLIENT_SECRET: z.string().min(1),
+  NEXT_PUBLIC_APP_URL: z.string().url(),
 });
+
+type WorkerEnv = z.infer<typeof workerEnvSchema>;
 
 const SYNC_PERIODS = [
   { key: "1month", label: "1 Month", months: 1 },
@@ -26,8 +29,7 @@ const SYNC_PERIODS = [
 
 type SyncPeriod = (typeof SYNC_PERIODS)[number];
 
-const buildPlaylistDescription = (): string => {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+const buildPlaylistDescription = (appUrl: string): string => {
   const date = new Date().toISOString().slice(0, 10);
   return `Created by Cutefy (${appUrl}) · Updated at ${date}`;
 };
@@ -84,7 +86,8 @@ const syncPeriod = async (
   db: D1Database,
   userId: string,
   period: SyncPeriod,
-  allTracks: TrackWithAddedAt[],
+  allTracks: ReadonlyArray<TrackWithAddedAt>,
+  appUrl: string,
 ): Promise<void> => {
   const dateRange = buildDateRange(period);
   const filteredTracks = filterTracksByDateRange(allTracks, dateRange);
@@ -97,7 +100,7 @@ const syncPeriod = async (
 
   const existingPlaylistId = await getPlaylistId(db, userId, period.key);
 
-  const description = buildPlaylistDescription();
+  const description = buildPlaylistDescription(appUrl);
 
   if (existingPlaylistId) {
     try {
@@ -135,10 +138,14 @@ const getEnabledUserIds = async (db: D1Database): Promise<string[]> => {
 
 const syncUserPlaylists = async (
   env: CloudflareEnv,
-  clientId: string,
-  clientSecret: string,
+  config: WorkerEnv,
   userId: string,
 ): Promise<void> => {
+  const {
+    NEXT_PUBLIC_SPOTIFY_CLIENT_ID: clientId,
+    SPOTIFY_CLIENT_SECRET: clientSecret,
+    NEXT_PUBLIC_APP_URL: appUrl,
+  } = config;
   console.log(`[playlist-sync] Syncing playlists for user ${userId}`);
 
   const refreshToken = await getRefreshToken(env.DB, userId);
@@ -164,7 +171,7 @@ const syncUserPlaylists = async (
 
   for (const period of SYNC_PERIODS) {
     try {
-      await syncPeriod(sdk, env.DB, userId, period, allTracks);
+      await syncPeriod(sdk, env.DB, userId, period, allTracks, appUrl);
     } catch (err) {
       console.error(`[playlist-sync] Failed to sync period ${period.key} for user ${userId}:`, err);
     }
@@ -175,12 +182,11 @@ export const updatePlaylists = async (
   env: CloudflareEnv,
   { skipEnabledCheck = false, userId }: { skipEnabledCheck?: boolean; userId?: string } = {},
 ): Promise<void> => {
-  const { NEXT_PUBLIC_SPOTIFY_CLIENT_ID: clientId, SPOTIFY_CLIENT_SECRET: clientSecret } =
-    workerEnvSchema.parse(env);
+  const config = workerEnvSchema.parse(env);
 
   // When called from the API with a specific userId, sync only that user
   if (skipEnabledCheck && userId) {
-    await syncUserPlaylists(env, clientId, clientSecret, userId);
+    await syncUserPlaylists(env, config, userId);
     return;
   }
 
@@ -195,7 +201,7 @@ export const updatePlaylists = async (
 
   for (const uid of enabledUserIds) {
     try {
-      await syncUserPlaylists(env, clientId, clientSecret, uid);
+      await syncUserPlaylists(env, config, uid);
     } catch (err) {
       console.error(`[playlist-sync] Failed to sync user ${uid}:`, err);
     }

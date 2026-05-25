@@ -2,11 +2,11 @@ import { Button } from "@heroui/react";
 import { Check, ExternalLink } from "lucide-react";
 import type React from "react";
 
-type CompletionScreenProps = {
+type CompletionScreenProps = Readonly<{
   playlistUrl: string;
   trackCount: number;
   onReset: () => void;
-};
+}>;
 
 export const CompletionScreen: React.FC<CompletionScreenProps> = ({
   playlistUrl,

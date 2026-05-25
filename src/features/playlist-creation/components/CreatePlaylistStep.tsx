@@ -1,10 +1,10 @@
 import type React from "react";
 import { Alert, Button, Input, Spinner } from "@heroui/react";
 import { ListMusic } from "lucide-react";
-import { CompletionScreen } from "@/components/CompletionScreen";
-import type { PlaylistState } from "@/types/playlist";
+import type { PlaylistState } from "@/features/playlist-creation/types";
+import { CompletionScreen } from "./CompletionScreen";
 
-type CreatePlaylistStepProps = {
+type CreatePlaylistStepProps = Readonly<{
   playlistName: string;
   onPlaylistNameChange: (name: string) => void;
   playlistState: PlaylistState;
@@ -12,7 +12,7 @@ type CreatePlaylistStepProps = {
   filteredTrackCount: number;
   onCreatePlaylist: () => void;
   onReset: () => void;
-};
+}>;
 
 export const CreatePlaylistStep: React.FC<CreatePlaylistStepProps> = ({
   playlistName,

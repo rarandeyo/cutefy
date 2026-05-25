@@ -1,7 +1,6 @@
 "use client";
 
 import type React from "react";
-import { useRef } from "react";
 import { Button } from "@heroui/react";
 import {
   ChevronLeft,
@@ -17,31 +16,29 @@ import {
 import Link from "next/link";
 import { signOut } from "@/lib/auth-client";
 import { trackCache } from "@/lib/track-cache";
-import { useStepNavigation } from "@/hooks/useStepNavigation";
-import { useSavedTracks } from "@/hooks/useSavedTracks";
-import { useDateFilter } from "@/hooks/useDateFilter";
-import { usePlaylistCreation } from "@/hooks/usePlaylistCreation";
-import { Stepper } from "@/components/Stepper";
-import { LoadTracksStep } from "@/components/LoadTracksStep";
-import { SelectDateStep } from "@/components/SelectDateStep";
-import { CreatePlaylistStep } from "@/components/CreatePlaylistStep";
+import { useDateFilter } from "./hooks/useDateFilter";
+import { usePlaylistCreation } from "./hooks/usePlaylistCreation";
+import { useSavedTracks } from "./hooks/useSavedTracks";
+import { type StepId, useStepNavigation } from "./hooks/useStepNavigation";
+import { CreatePlaylistStep } from "./components/CreatePlaylistStep";
+import { LoadTracksStep } from "./components/LoadTracksStep";
+import { SelectDateStep } from "./components/SelectDateStep";
+import { Stepper } from "./components/Stepper";
 
 const STEPS = [
-  { label: "曲を取得", icon: Music },
-  { label: "期間・確認", icon: ListMusic },
-  { label: "作成", icon: Sparkles },
-] as const;
+  { id: "load", label: "曲を取得", icon: Music },
+  { id: "date", label: "期間・確認", icon: ListMusic },
+  { id: "create", label: "作成", icon: Sparkles },
+] as const satisfies ReadonlyArray<{
+  id: StepId;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+}>;
 
-export const MainContent: React.FC = () => {
-  const goNextRef = useRef<() => void>(undefined);
+export const PlaylistCreationContainer: React.FC = () => {
+  const { currentStep, currentIndex, setStep, goBack, goNext } = useStepNavigation();
 
-  const { allTracks, isLoadingTracks, handleLoadTracks, progress, error } = useSavedTracks(() =>
-    goNextRef.current?.(),
-  );
-  const { currentStep, setCurrentStep, goBack, goNext } = useStepNavigation(
-    allTracks.length > 0 ? 1 : 0,
-  );
-  goNextRef.current = goNext;
+  const { state: tracksState, handleLoadTracks } = useSavedTracks(() => setStep("date"));
 
   const {
     dateRange,
@@ -53,7 +50,8 @@ export const MainContent: React.FC = () => {
     dateError,
     sortOrder,
     toggleSortOrder,
-  } = useDateFilter(allTracks);
+  } = useDateFilter(tracksState.tracks);
+
   const {
     playlistName,
     setPlaylistName,
@@ -63,7 +61,8 @@ export const MainContent: React.FC = () => {
     handleReset,
   } = usePlaylistCreation(filteredTracks, dateRange);
 
-  const nextDisabled = currentStep === 1 && (filteredTracks.length === 0 || !isDateRangeValid);
+  const nextDisabled = currentStep === "date" && (filteredTracks.length === 0 || !isDateRangeValid);
+  const hideNextButton = currentStep === "load" || currentStep === "create";
 
   return (
     <div className="mx-auto flex h-screen max-w-2xl flex-col overflow-hidden p-4 md:p-8">
@@ -107,21 +106,14 @@ export const MainContent: React.FC = () => {
         </div>
       </header>
 
-      <Stepper steps={STEPS} currentStep={currentStep} onStepClick={setCurrentStep} />
+      <Stepper steps={STEPS} currentIndex={currentIndex} onStepClick={setStep} />
 
       <div className="mt-4 min-h-0 flex-1">
         <div key={currentStep} className="h-full animate-[fade-in_0.3s_ease-out]">
-          {currentStep === 0 && (
-            <LoadTracksStep
-              isLoading={isLoadingTracks}
-              trackCount={allTracks.length}
-              progress={progress}
-              error={error}
-              onLoadTracks={handleLoadTracks}
-              onNext={goNext}
-            />
+          {currentStep === "load" && (
+            <LoadTracksStep state={tracksState} onLoadTracks={handleLoadTracks} onNext={goNext} />
           )}
-          {currentStep === 1 && (
+          {currentStep === "date" && (
             <SelectDateStep
               dateRange={dateRange}
               onDateRangeChange={setDateRangeValue}
@@ -133,7 +125,7 @@ export const MainContent: React.FC = () => {
               onToggleSortOrder={toggleSortOrder}
             />
           )}
-          {currentStep === 2 && (
+          {currentStep === "create" && (
             <CreatePlaylistStep
               playlistName={playlistName}
               onPlaylistNameChange={setPlaylistName}
@@ -141,7 +133,7 @@ export const MainContent: React.FC = () => {
               isCreating={isCreatingPlaylist}
               filteredTrackCount={filteredTracks.length}
               onCreatePlaylist={handleCreatePlaylist}
-              onReset={() => handleReset(() => setCurrentStep(1))}
+              onReset={() => handleReset(() => setStep("date"))}
             />
           )}
         </div>
@@ -151,7 +143,7 @@ export const MainContent: React.FC = () => {
         <Button
           variant="ghost"
           onPress={goBack}
-          className={`flex items-center gap-1 rounded-md px-4 py-2 text-sm text-text-subdued transition-colors hover:text-foreground ${currentStep === 0 ? "invisible" : ""}`}
+          className={`flex items-center gap-1 rounded-md px-4 py-2 text-sm text-text-subdued transition-colors hover:text-foreground ${currentStep === "load" ? "invisible" : ""}`}
         >
           <ChevronLeft className="h-4 w-4" />
           戻る
@@ -159,7 +151,7 @@ export const MainContent: React.FC = () => {
         <Button
           onPress={goNext}
           isDisabled={nextDisabled}
-          className={`flex items-center gap-1 rounded-full bg-spotify-green px-6 py-2.5 font-semibold text-black transition-colors hover:bg-spotify-green-hover disabled:cursor-not-allowed disabled:opacity-40 ${currentStep === 0 || currentStep === 2 ? "invisible" : ""}`}
+          className={`flex items-center gap-1 rounded-full bg-spotify-green px-6 py-2.5 font-semibold text-black transition-colors hover:bg-spotify-green-hover disabled:cursor-not-allowed disabled:opacity-40 ${hideNextButton ? "invisible" : ""}`}
         >
           次へ
           <ChevronRight className="h-4 w-4" />

@@ -19,8 +19,8 @@ const cacheDataSchema = z.object({
   cachedAt: z.number(),
 });
 
-let listeners: (() => void)[] = [];
-let cachedResult: TrackWithAddedAt[] | null = null;
+let listeners: ReadonlyArray<() => void> = [];
+let cachedResult: ReadonlyArray<TrackWithAddedAt> | null = null;
 let cachedRaw: string | null = null;
 
 const emitChange = () => {
@@ -31,7 +31,7 @@ const emitChange = () => {
   }
 };
 
-const parseCache = (raw: string): TrackWithAddedAt[] | null => {
+const parseCache = (raw: string): ReadonlyArray<TrackWithAddedAt> | null => {
   try {
     const parsed = cacheDataSchema.safeParse(JSON.parse(raw));
     if (!parsed.success) {
@@ -54,7 +54,7 @@ export const trackCache = {
     };
   },
 
-  getSnapshot: (): TrackWithAddedAt[] | null => {
+  getSnapshot: (): ReadonlyArray<TrackWithAddedAt> | null => {
     const raw = localStorage.getItem(CACHE_KEY);
     if (!raw) return null;
     if (raw === cachedRaw) return cachedResult;
@@ -65,7 +65,7 @@ export const trackCache = {
 
   getServerSnapshot: (): null => null,
 
-  set: (tracks: TrackWithAddedAt[]) => {
+  set: (tracks: ReadonlyArray<TrackWithAddedAt>) => {
     const data = { tracks, cachedAt: Date.now() };
     localStorage.setItem(CACHE_KEY, JSON.stringify(data));
     emitChange();

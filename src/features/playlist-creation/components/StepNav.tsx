@@ -2,12 +2,12 @@ import { Button } from "@heroui/react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type React from "react";
 
-type StepNavProps = {
+type StepNavProps = Readonly<{
   onBack?: () => void;
   onNext?: () => void;
   nextLabel?: string;
   nextDisabled?: boolean;
-};
+}>;
 
 export const StepNav: React.FC<StepNavProps> = ({
   onBack,

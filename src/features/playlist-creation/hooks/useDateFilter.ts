@@ -4,7 +4,12 @@ import { type DateRange, filterTracksByDateRange, type TrackWithAddedAt } from "
 
 export type SortOrder = "asc" | "desc";
 
-const getDefaultDateRange = () => {
+export type CalendarDateRange = Readonly<{
+  startDate: CalendarDate;
+  endDate: CalendarDate;
+}>;
+
+const getDefaultDateRange = (): CalendarDateRange => {
   const end = today(getLocalTimeZone());
   const start = end.subtract({ months: 1 });
   return { startDate: start, endDate: end };
@@ -19,8 +24,8 @@ const calendarDateToDate = (date: CalendarDate, endOfDay = false): Date => {
   return d;
 };
 
-export const useDateFilter = (allTracks: TrackWithAddedAt[]) => {
-  const [dateRange, setDateRange] = useState(getDefaultDateRange);
+export const useDateFilter = (allTracks: ReadonlyArray<TrackWithAddedAt>) => {
+  const [dateRange, setDateRange] = useState<CalendarDateRange>(getDefaultDateRange);
   const [activePreset, setActivePreset] = useState<number | null>(1);
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
 
@@ -30,7 +35,7 @@ export const useDateFilter = (allTracks: TrackWithAddedAt[]) => {
   };
 
   const filtered = filterTracksByDateRange(allTracks, nativeDateRange);
-  const filteredTracks = filtered.toSorted((a, b) =>
+  const filteredTracks: ReadonlyArray<TrackWithAddedAt> = filtered.toSorted((a, b) =>
     sortOrder === "asc"
       ? a.addedAt.getTime() - b.addedAt.getTime()
       : b.addedAt.getTime() - a.addedAt.getTime(),
@@ -39,21 +44,21 @@ export const useDateFilter = (allTracks: TrackWithAddedAt[]) => {
   const isDateRangeValid = dateRange.startDate.compare(dateRange.endDate) <= 0;
   const dateError = isDateRangeValid ? null : "開始日は終了日以前に設定してください";
 
-  const setDateRangeValue = (value: { start: CalendarDate; end: CalendarDate } | null) => {
+  const setDateRangeValue = (value: { start: CalendarDate; end: CalendarDate } | null): void => {
     if (value) {
       setDateRange({ startDate: value.start, endDate: value.end });
       setActivePreset(null);
     }
   };
 
-  const applyPreset = (months: number) => {
+  const applyPreset = (months: number): void => {
     const end = today(getLocalTimeZone());
     const start = end.subtract({ months });
     setDateRange({ startDate: start, endDate: end });
     setActivePreset(months);
   };
 
-  const toggleSortOrder = () => {
+  const toggleSortOrder = (): void => {
     setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
   };
 

@@ -1,7 +1,8 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { SettingsContent } from "@/features/settings/components/SettingsContent";
+import { getSyncEnabled } from "@/features/settings/server/getSyncSettings";
 import { getAuth } from "@/lib/auth";
-import { SettingsContent } from "@/components/SettingsContent";
 
 export const dynamic = "force-dynamic";
 
@@ -14,5 +15,7 @@ export default async function Page() {
     redirect("/");
   }
 
-  return <SettingsContent />;
+  const initialEnabled = await getSyncEnabled(session.user.id);
+
+  return <SettingsContent initialEnabled={initialEnabled} />;
 }

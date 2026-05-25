@@ -1,11 +1,11 @@
 import { type AccessToken, type SavedTrack, SpotifyApi } from "@spotify/web-api-ts-sdk";
 
-export type DateRange = {
+export type DateRange = Readonly<{
   startDate: Date;
   endDate: Date;
-};
+}>;
 
-export type TrackWithAddedAt = {
+export type TrackWithAddedAt = Readonly<{
   id: string;
   name: string;
   uri: string;
@@ -13,18 +13,18 @@ export type TrackWithAddedAt = {
   albumName: string;
   albumImageUrl: string | undefined;
   addedAt: Date;
-};
+}>;
 
-export type FetchProgress = {
+export type FetchProgress = Readonly<{
   loaded: number;
   total: number;
-};
+}>;
 
-type CreateSpotifyClientParams = {
+type CreateSpotifyClientParams = Readonly<{
   clientId: string;
   accessToken: string;
   refreshToken?: string;
-};
+}>;
 
 export const createSpotifyClient = ({
   clientId,
@@ -53,7 +53,7 @@ const mapSavedTrackToTrackWithAddedAt = (item: SavedTrack): TrackWithAddedAt => 
 export const fetchAllSavedTracks = async (
   sdk: SpotifyApi,
   onProgress?: (progress: FetchProgress) => void,
-): Promise<TrackWithAddedAt[]> => {
+): Promise<ReadonlyArray<TrackWithAddedAt>> => {
   const allTracks: TrackWithAddedAt[] = [];
   const LIMIT = 50;
   let offset = 0;
@@ -72,20 +72,20 @@ export const fetchAllSavedTracks = async (
 };
 
 export const filterTracksByDateRange = (
-  tracks: TrackWithAddedAt[],
+  tracks: ReadonlyArray<TrackWithAddedAt>,
   dateRange: DateRange,
-): TrackWithAddedAt[] =>
+): ReadonlyArray<TrackWithAddedAt> =>
   tracks.filter(
     (track) => track.addedAt >= dateRange.startDate && track.addedAt <= dateRange.endDate,
   );
 
-type CreatePlaylistParams = {
+type CreatePlaylistParams = Readonly<{
   sdk: SpotifyApi;
   playlistName: string;
-  trackUris: string[];
+  trackUris: ReadonlyArray<string>;
   description?: string;
   visibility?: "public" | "private";
-};
+}>;
 
 export const createPlaylistFromTracks = async ({
   sdk,
@@ -112,11 +112,11 @@ export const createPlaylistFromTracks = async ({
   };
 };
 
-type ReplacePlaylistTracksParams = {
+type ReplacePlaylistTracksParams = Readonly<{
   sdk: SpotifyApi;
   playlistId: string;
-  trackUris: string[];
-};
+  trackUris: ReadonlyArray<string>;
+}>;
 
 export const replacePlaylistTracks = async ({
   sdk,
@@ -134,11 +134,11 @@ export const replacePlaylistTracks = async ({
   }
 };
 
-type UpdatePlaylistDetailsParams = {
+type UpdatePlaylistDetailsParams = Readonly<{
   sdk: SpotifyApi;
   playlistId: string;
   description: string;
-};
+}>;
 
 export const updatePlaylistDetails = async ({
   sdk,

@@ -1,8 +1,18 @@
 import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { authClient } from "@/lib/auth-client";
 import { clientEnv } from "@/lib/env";
-import { createSpotifyClient, fetchAllSavedTracks, type FetchProgress } from "@/lib/spotify";
+import {
+  createSpotifyClient,
+  fetchAllSavedTracks,
+  type FetchProgress,
+  type TrackWithAddedAt,
+} from "@/lib/spotify";
 import { trackCache } from "@/lib/track-cache";
+
+export type SavedTracksState =
+  | { status: "loading"; tracks: ReadonlyArray<TrackWithAddedAt>; progress: FetchProgress | null }
+  | { status: "loaded"; tracks: ReadonlyArray<TrackWithAddedAt> }
+  | { status: "error"; tracks: ReadonlyArray<TrackWithAddedAt>; message: string };
 
 const fetchTracks = async (
   startTransition: React.TransitionStartFunction,
@@ -33,21 +43,38 @@ const fetchTracks = async (
   });
 };
 
+const buildState = ({
+  tracks,
+  isLoading,
+  progress,
+  error,
+}: {
+  tracks: ReadonlyArray<TrackWithAddedAt>;
+  isLoading: boolean;
+  progress: FetchProgress | null;
+  error: string | null;
+}): SavedTracksState => {
+  if (isLoading) return { status: "loading", tracks, progress };
+  if (error !== null) return { status: "error", tracks, message: error };
+  return { status: "loaded", tracks };
+};
+
 export const useSavedTracks = (onAutoFetchComplete?: () => void) => {
   const cachedTracks = useSyncExternalStore(
     trackCache.subscribe,
     trackCache.getSnapshot,
     trackCache.getServerSnapshot,
   );
-  const allTracks = cachedTracks ?? [];
-  const [isLoadingTracks, startLoadingTransition] = useTransition();
+  const tracks: ReadonlyArray<TrackWithAddedAt> = cachedTracks ?? [];
+  const [isLoading, startLoadingTransition] = useTransition();
   const [progress, setProgress] = useState<FetchProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const onAutoFetchCompleteRef = useRef(onAutoFetchComplete);
   onAutoFetchCompleteRef.current = onAutoFetchComplete;
 
-  // キャッシュがない場合、マウント時に自動取得
+  // localStorage キャッシュが空のときだけ初回マウントで自動取得する。
+  // 外部システム (localStorage 経由のキャッシュ) との同期なので Effect で記述。
   const autoFetchStarted = useRef(false);
   useEffect(() => {
     if (cachedTracks !== null || autoFetchStarted.current) return;
@@ -57,9 +84,12 @@ export const useSavedTracks = (onAutoFetchComplete?: () => void) => {
     );
   }, [cachedTracks, startLoadingTransition]);
 
-  const handleLoadTracks = (onComplete?: () => void) => {
+  const handleLoadTracks = (onComplete?: () => void): void => {
     fetchTracks(startLoadingTransition, setProgress, setError, onComplete);
   };
 
-  return { allTracks, isLoadingTracks, handleLoadTracks, progress, error };
+  return {
+    state: buildState({ tracks, isLoading, progress, error }),
+    handleLoadTracks,
+  };
 };

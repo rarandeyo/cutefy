@@ -15,22 +15,6 @@ const syncSettingsBodySchema = z.object({
   enabled: z.boolean(),
 });
 
-export async function GET(request: Request) {
-  let session: Awaited<ReturnType<typeof requireSession>>;
-  try {
-    session = await requireSession(request);
-  } catch {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const { env } = getCloudflareContext();
-  const row = await env.DB.prepare("SELECT enabled FROM sync_settings WHERE user_id = ?")
-    .bind(session.user.id)
-    .first<{ enabled: number }>();
-
-  return Response.json({ enabled: row?.enabled === 1 });
-}
-
 export async function POST(request: Request) {
   let session: Awaited<ReturnType<typeof requireSession>>;
   try {

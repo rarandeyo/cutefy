@@ -4,12 +4,14 @@ import type React from "react";
 import { Switch } from "@heroui/react";
 import { ArrowLeft, Loader2, RefreshCw } from "lucide-react";
 import Link from "next/link";
-import { useSyncSettings } from "@/hooks/useSyncSettings";
+import { useSyncSettings } from "@/features/settings/hooks/useSyncSettings";
 
-export const SettingsContent: React.FC = () => {
-  const { state, isToggling, handleToggle } = useSyncSettings();
+type SettingsContentProps = Readonly<{
+  initialEnabled: boolean;
+}>;
 
-  const isEnabled = state.status !== "loading" && state.enabled;
+export const SettingsContent: React.FC<SettingsContentProps> = ({ initialEnabled }) => {
+  const { enabled, isToggling, errorMessage, handleToggle } = useSyncSettings(initialEnabled);
 
   return (
     <div className="mx-auto flex h-screen max-w-2xl flex-col p-4 md:p-8">
@@ -36,15 +38,11 @@ export const SettingsContent: React.FC = () => {
                 お気に入りの曲から 1ヶ月 / 6ヶ月 / 1年 のプレイリストを毎日自動更新します
               </p>
             </div>
-            {state.status === "loading" ? (
-              <Loader2 className="h-5 w-5 animate-spin text-foreground/40" />
-            ) : (
-              <Switch isSelected={isEnabled} isDisabled={isToggling} onChange={handleToggle}>
-                <Switch.Control>
-                  <Switch.Thumb />
-                </Switch.Control>
-              </Switch>
-            )}
+            <Switch isSelected={enabled} isDisabled={isToggling} onChange={handleToggle}>
+              <Switch.Control>
+                <Switch.Thumb />
+              </Switch.Control>
+            </Switch>
           </div>
 
           {isToggling && (
@@ -54,7 +52,7 @@ export const SettingsContent: React.FC = () => {
             </div>
           )}
 
-          {state.status === "error" && <p className="mt-3 text-sm text-danger">{state.message}</p>}
+          {errorMessage && <p className="mt-3 text-sm text-danger">{errorMessage}</p>}
         </div>
       </div>
     </div>
