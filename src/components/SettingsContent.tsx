@@ -4,7 +4,7 @@ import type React from "react";
 import { Switch } from "@heroui/react";
 import { ArrowLeft, Loader2, RefreshCw } from "lucide-react";
 import Link from "next/link";
-import { useSyncSettings } from "@/hooks/useSyncSettings";
+import { useSyncSettings } from "@/hooks/use-sync-settings";
 
 export const SettingsContent: React.FC = () => {
   const { state, isToggling, handleToggle } = useSyncSettings();

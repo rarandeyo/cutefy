@@ -11,7 +11,7 @@ import {
 } from "@heroui/react";
 import { ArrowDownUp } from "lucide-react";
 import type { TrackWithAddedAt } from "@/lib/spotify";
-import type { SortOrder } from "@/hooks/useDateFilter";
+import type { SortOrder } from "@/hooks/use-date-filter";
 
 type SelectDateStepProps = {
   dateRange: { startDate: CalendarDate; endDate: CalendarDate };
@@ -19,7 +19,7 @@ type SelectDateStepProps = {
   onApplyPreset: (months: number) => void;
   activePreset: number | null;
   dateError: string | null;
-  filteredTracks: TrackWithAddedAt[];
+  filteredTracks: readonly TrackWithAddedAt[];
   sortOrder: SortOrder;
   onToggleSortOrder: () => void;
 };

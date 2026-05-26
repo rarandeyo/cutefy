@@ -6,7 +6,17 @@ import { createPlaylist } from "@/app/app/actions";
 import type { TrackWithAddedAt } from "@/lib/spotify";
 import { INITIAL_PLAYLIST_STATE, type PlaylistState } from "@/types/playlist";
 
-const formatCalendarDate = (d: CalendarDate) => `${d.year}/${String(d.month).padStart(2, "0")}`;
+type PlaylistCreation = {
+  playlistName: string;
+  setPlaylistName: (name: string) => void;
+  playlistState: PlaylistState;
+  isCreatingPlaylist: boolean;
+  handleCreatePlaylist: () => void;
+  handleReset: (onComplete?: () => void) => void;
+};
+
+const formatCalendarDate = (d: CalendarDate): string =>
+  `${d.year}/${String(d.month).padStart(2, "0")}`;
 
 const generateDefaultName = (start: CalendarDate, end: CalendarDate): string =>
   `お気に入り ${formatCalendarDate(start)} - ${formatCalendarDate(end)}`;
@@ -14,7 +24,7 @@ const generateDefaultName = (start: CalendarDate, end: CalendarDate): string =>
 export const usePlaylistCreation = (
   filteredTracks: TrackWithAddedAt[],
   dateRange: { startDate: CalendarDate; endDate: CalendarDate },
-) => {
+): PlaylistCreation => {
   const [manualName, setManualName] = useState("");
   const [isNameManuallySet, setIsNameManuallySet] = useState(false);
   const [playlistState, setPlaylistState] = useState<PlaylistState>(INITIAL_PLAYLIST_STATE);

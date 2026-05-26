@@ -7,10 +7,10 @@ import { CreatePlaylistStep } from "@/components/CreatePlaylistStep";
 import { LoadTracksStep } from "@/components/LoadTracksStep";
 import { SelectDateStep } from "@/components/SelectDateStep";
 import { Stepper } from "@/components/Stepper";
-import { useDateFilter } from "@/hooks/useDateFilter";
-import { usePlaylistCreation } from "@/hooks/usePlaylistCreation";
-import { useSavedTracks } from "@/hooks/useSavedTracks";
-import { useStepNavigation } from "@/hooks/useStepNavigation";
+import { useDateFilter } from "@/hooks/use-date-filter";
+import { usePlaylistCreation } from "@/hooks/use-playlist-creation";
+import { useSavedTracks } from "@/hooks/use-saved-tracks";
+import { useStepNavigation } from "@/hooks/use-step-navigation";
 
 const STEPS = [
   { label: "曲を取得", icon: Music },
@@ -19,24 +19,24 @@ const STEPS = [
 ] as const;
 
 export const WizardSteps: React.FC = () => {
-  const goNextRef = useRef<() => void>(undefined);
+  const handleNextRef = useRef<() => void>(undefined);
 
   const { allTracks, isLoadingTracks, handleLoadTracks, error } = useSavedTracks(() =>
-    goNextRef.current?.(),
+    handleNextRef.current?.(),
   );
-  const { currentStep, setCurrentStep, goBack, goNext } = useStepNavigation();
-  goNextRef.current = goNext;
+  const { currentStep, setCurrentStep, handleBack, handleNext } = useStepNavigation();
+  handleNextRef.current = handleNext;
 
   const {
     dateRange,
     filteredTracks,
     setDateRangeValue,
-    applyPreset,
+    handleApplyPreset,
     activePreset,
     isDateRangeValid,
     dateError,
     sortOrder,
-    toggleSortOrder,
+    handleToggleSortOrder,
   } = useDateFilter(allTracks);
   const {
     playlistName,
@@ -61,19 +61,19 @@ export const WizardSteps: React.FC = () => {
               trackCount={allTracks.length}
               error={error}
               onLoadTracks={handleLoadTracks}
-              onNext={goNext}
+              onNext={handleNext}
             />
           )}
           {currentStep === 1 && (
             <SelectDateStep
               dateRange={dateRange}
               onDateRangeChange={setDateRangeValue}
-              onApplyPreset={applyPreset}
+              onApplyPreset={handleApplyPreset}
               activePreset={activePreset}
               dateError={dateError}
               filteredTracks={filteredTracks}
               sortOrder={sortOrder}
-              onToggleSortOrder={toggleSortOrder}
+              onToggleSortOrder={handleToggleSortOrder}
             />
           )}
           {currentStep === 2 && (
@@ -93,14 +93,14 @@ export const WizardSteps: React.FC = () => {
       <div className="flex shrink-0 items-center justify-between pt-4">
         <Button
           variant="ghost"
-          onPress={goBack}
+          onPress={handleBack}
           className={`flex items-center gap-1 rounded-md px-4 py-2 text-sm text-text-subdued transition-colors hover:text-foreground ${currentStep === 0 ? "invisible" : ""}`}
         >
           <ChevronLeft className="h-4 w-4" />
           戻る
         </Button>
         <Button
-          onPress={goNext}
+          onPress={handleNext}
           isDisabled={nextDisabled}
           className={`flex items-center gap-1 rounded-full bg-spotify-green px-6 py-2.5 font-semibold text-black transition-colors hover:bg-spotify-green-hover disabled:cursor-not-allowed disabled:opacity-40 ${currentStep === 0 || currentStep === 2 ? "invisible" : ""}`}
         >

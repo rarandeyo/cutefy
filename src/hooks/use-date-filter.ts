@@ -32,7 +32,19 @@ const filterParsers = {
   preset: parseAsInteger,
 };
 
-const getDefaultDateRange = () => {
+type DateFilter = {
+  dateRange: { startDate: CalendarDate; endDate: CalendarDate };
+  filteredTracks: TrackWithAddedAt[];
+  setDateRangeValue: (value: { start: CalendarDate; end: CalendarDate } | null) => void;
+  handleApplyPreset: (months: number) => void;
+  activePreset: number | null;
+  isDateRangeValid: boolean;
+  dateError: string | null;
+  sortOrder: SortOrder;
+  handleToggleSortOrder: () => void;
+};
+
+const getDefaultDateRange = (): { startDate: CalendarDate; endDate: CalendarDate } => {
   const end = today(getLocalTimeZone());
   const start = end.subtract({ months: 1 });
   return { startDate: start, endDate: end };
@@ -47,7 +59,7 @@ const calendarDateToDate = (date: CalendarDate, endOfDay = false): Date => {
   return d;
 };
 
-export const useDateFilter = (allTracks: TrackWithAddedAt[]) => {
+export const useDateFilter = (allTracks: TrackWithAddedAt[]): DateFilter => {
   const [{ from, to, sort, preset }, setState] = useQueryStates(filterParsers);
 
   const defaults = getDefaultDateRange();
@@ -73,13 +85,13 @@ export const useDateFilter = (allTracks: TrackWithAddedAt[]) => {
     void setState({ from: value.start, to: value.end, preset: null });
   };
 
-  const applyPreset = (months: number) => {
+  const handleApplyPreset = (months: number) => {
     const end = today(getLocalTimeZone());
     const start = end.subtract({ months });
     void setState({ from: start, to: end, preset: months });
   };
 
-  const toggleSortOrder = () => {
+  const handleToggleSortOrder = () => {
     void setState({ sort: sort === "asc" ? "desc" : "asc" });
   };
 
@@ -87,11 +99,11 @@ export const useDateFilter = (allTracks: TrackWithAddedAt[]) => {
     dateRange: { startDate, endDate },
     filteredTracks,
     setDateRangeValue,
-    applyPreset,
+    handleApplyPreset,
     activePreset: preset,
     isDateRangeValid,
     dateError,
     sortOrder: sort,
-    toggleSortOrder,
+    handleToggleSortOrder,
   };
 };

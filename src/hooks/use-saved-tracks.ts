@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { loadSavedTracks } from "@/app/app/actions";
 import { trackCache } from "@/lib/track-cache";
+import type { TrackWithAddedAt } from "@/lib/spotify";
 
 const fetchTracks = async (
   startTransition: React.TransitionStartFunction,
@@ -21,7 +22,14 @@ const fetchTracks = async (
   });
 };
 
-export const useSavedTracks = (onAutoFetchComplete?: () => void) => {
+type SavedTracks = {
+  allTracks: TrackWithAddedAt[];
+  isLoadingTracks: boolean;
+  handleLoadTracks: (onComplete?: () => void) => void;
+  error: string | null;
+};
+
+export const useSavedTracks = (onAutoFetchComplete?: () => void): SavedTracks => {
   const cachedTracks = useSyncExternalStore(
     trackCache.subscribe,
     trackCache.getSnapshot,
