@@ -1,5 +1,4 @@
 import type { SpotifyApi } from "@spotify/web-api-ts-sdk";
-import { z } from "zod";
 import {
   createPlaylistFromTracks,
   createSpotifyClient,
@@ -11,6 +10,7 @@ import {
   type TrackWithAddedAt,
 } from "@/shared/lib/spotify";
 import { clientEnv } from "@/shared/lib/env/client";
+import { env as serverEnv } from "@/shared/lib/env/server";
 import { refreshAccessToken } from "@/shared/lib/spotify/token";
 import {
   createPlaylistId,
@@ -19,11 +19,6 @@ import {
   type UserId,
 } from "@/shared/types/brands";
 import { errorMessage } from "@/shared/lib/error";
-
-const workerEnvSchema = z.object({
-  SPOTIFY_CLIENT_ID: z.string().min(1),
-  SPOTIFY_CLIENT_SECRET: z.string().min(1),
-});
 
 type SyncPeriod = {
   key: string;
@@ -188,8 +183,8 @@ export const updatePlaylists = async (
   env: CloudflareEnv,
   { skipEnabledCheck = false, userId }: { skipEnabledCheck?: boolean; userId?: UserId } = {},
 ): Promise<void> => {
-  const { SPOTIFY_CLIENT_ID: clientId, SPOTIFY_CLIENT_SECRET: clientSecret } =
-    workerEnvSchema.parse(env);
+  const clientId = serverEnv.SPOTIFY_CLIENT_ID;
+  const clientSecret = serverEnv.SPOTIFY_CLIENT_SECRET;
 
   // When called from the API with a specific userId, sync only that user
   if (skipEnabledCheck && userId) {
