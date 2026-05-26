@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import type { SpotifyApi } from "@spotify/web-api-ts-sdk";
 import { getAuth } from "@/shared/lib/auth/server";
 import { env } from "@/shared/lib/env/server";
+import { createUserId, type UserId } from "@/shared/types/brands";
 import { createSpotifyClient } from ".";
 
 export class UnauthorizedError extends Error {
@@ -15,7 +16,7 @@ export class UnauthorizedError extends Error {
 
 export const getSpotifyClientForCurrentUser = async (): Promise<{
   sdk: SpotifyApi;
-  userId: string;
+  userId: UserId;
 }> => {
   const auth = await getAuth();
   const requestHeaders = await headers();
@@ -39,5 +40,5 @@ export const getSpotifyClientForCurrentUser = async (): Promise<{
     accessToken: token.accessToken,
   });
 
-  return { sdk, userId: session.user.id };
+  return { sdk, userId: createUserId(session.user.id) };
 };

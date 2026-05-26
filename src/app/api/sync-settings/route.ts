@@ -2,6 +2,8 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { z } from "zod";
 import { getAuth } from "@/shared/lib/auth/server";
 import { updatePlaylists } from "@/lib/playlist-sync";
+import { createUserId } from "@/shared/types/brands";
+import { errorMessage } from "@/shared/lib/error";
 
 const requireSession = async (request: Request) => {
   const auth = await getAuth();
@@ -57,9 +59,12 @@ export const POST = async (request: Request): Promise<Response> => {
   // Run initial sync when enabling
   if (enabled) {
     try {
-      await updatePlaylists(env, { skipEnabledCheck: true, userId: session.user.id });
+      await updatePlaylists(env, {
+        skipEnabledCheck: true,
+        userId: createUserId(session.user.id),
+      });
     } catch (err) {
-      console.error("[sync-settings] Initial sync failed:", err);
+      console.error(`[sync-settings] Initial sync failed: ${errorMessage(err, "unknown error")}`);
       return Response.json({
         enabled: true,
         syncError: "Initial sync failed",

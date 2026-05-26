@@ -12,6 +12,13 @@ import {
 } from "@/shared/lib/spotify";
 import { clientEnv } from "@/shared/lib/env/client";
 import { refreshAccessToken } from "@/shared/lib/spotify/token";
+import {
+  createPlaylistId,
+  createUserId,
+  type PlaylistId,
+  type UserId,
+} from "@/shared/types/brands";
+import { errorMessage } from "@/shared/lib/error";
 
 const workerEnvSchema = z.object({
   SPOTIFY_CLIENT_ID: z.string().min(1),
@@ -39,7 +46,7 @@ const buildDateRange = (period: SyncPeriod): DateRange => {
   return { startDate, endDate: now };
 };
 
-const getRefreshToken = async (db: D1Database, userId: string): Promise<string> => {
+const getRefreshToken = async (db: D1Database, userId: UserId): Promise<string> => {
   const row = await db
     .prepare("SELECT refreshToken FROM account WHERE providerId = 'spotify' AND userId = ?")
     .bind(userId)
@@ -54,22 +61,22 @@ const getRefreshToken = async (db: D1Database, userId: string): Promise<string> 
 
 const getPlaylistId = async (
   db: D1Database,
-  userId: string,
+  userId: UserId,
   period: string,
-): Promise<string | null> => {
+): Promise<PlaylistId | null> => {
   const row = await db
     .prepare("SELECT playlist_id FROM playlist_sync WHERE user_id = ? AND period = ?")
     .bind(userId, period)
     .first<{ playlist_id: string }>();
 
-  return row?.playlist_id ?? null;
+  return row?.playlist_id ? createPlaylistId(row.playlist_id) : null;
 };
 
 const savePlaylistId = async (
   db: D1Database,
-  userId: string,
+  userId: UserId,
   period: string,
-  playlistId: string,
+  playlistId: PlaylistId,
 ): Promise<void> => {
   await db
     .prepare(
@@ -82,7 +89,7 @@ const savePlaylistId = async (
 const syncPeriod = async (
   sdk: SpotifyApi,
   db: D1Database,
-  userId: string,
+  userId: UserId,
   period: SyncPeriod,
   allTracks: TrackWithAddedAt[],
 ): Promise<void> => {
@@ -125,19 +132,19 @@ const syncPeriod = async (
   );
 };
 
-const getEnabledUserIds = async (db: D1Database): Promise<string[]> => {
+const getEnabledUserIds = async (db: D1Database): Promise<UserId[]> => {
   const { results } = await db
     .prepare("SELECT user_id FROM sync_settings WHERE enabled = 1")
     .all<{ user_id: string }>();
 
-  return results.map((row) => row.user_id);
+  return results.map((row) => createUserId(row.user_id));
 };
 
 const syncUserPlaylists = async (
   env: CloudflareEnv,
   clientId: string,
   clientSecret: string,
-  userId: string,
+  userId: UserId,
 ): Promise<void> => {
   console.log(`[playlist-sync] Syncing playlists for user ${userId}`);
 
@@ -166,14 +173,16 @@ const syncUserPlaylists = async (
     try {
       await syncPeriod(sdk, env.DB, userId, period, allTracks);
     } catch (err) {
-      console.error(`[playlist-sync] Failed to sync period ${period.key} for user ${userId}:`, err);
+      console.error(
+        `[playlist-sync] Failed to sync period ${period.key} for user ${userId}: ${errorMessage(err, "unknown error")}`,
+      );
     }
   }
 };
 
 export const updatePlaylists = async (
   env: CloudflareEnv,
-  { skipEnabledCheck = false, userId }: { skipEnabledCheck?: boolean; userId?: string } = {},
+  { skipEnabledCheck = false, userId }: { skipEnabledCheck?: boolean; userId?: UserId } = {},
 ): Promise<void> => {
   const { SPOTIFY_CLIENT_ID: clientId, SPOTIFY_CLIENT_SECRET: clientSecret } =
     workerEnvSchema.parse(env);
@@ -197,7 +206,9 @@ export const updatePlaylists = async (
     try {
       await syncUserPlaylists(env, clientId, clientSecret, uid);
     } catch (err) {
-      console.error(`[playlist-sync] Failed to sync user ${uid}:`, err);
+      console.error(
+        `[playlist-sync] Failed to sync user ${uid}: ${errorMessage(err, "unknown error")}`,
+      );
     }
   }
 

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { TrackWithAddedAt } from "@/shared/lib/spotify";
+import { createSpotifyTrackUri } from "@/shared/types/brands";
 
 const CACHE_KEY = "spotify-tracks";
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24時間
@@ -9,7 +10,7 @@ const cacheDataSchema = z.object({
     z.object({
       id: z.string(),
       name: z.string(),
-      uri: z.string(),
+      uri: z.string().transform(createSpotifyTrackUri),
       artists: z.string(),
       albumName: z.string(),
       albumImageUrl: z.string().or(z.undefined()),

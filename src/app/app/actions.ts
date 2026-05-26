@@ -7,18 +7,23 @@ import {
   type TrackWithAddedAt,
 } from "@/shared/lib/spotify";
 import { getSpotifyClientForCurrentUser, UnauthorizedError } from "@/shared/lib/spotify/server";
+import { createSpotifyTrackUri, type PlaylistId } from "@/shared/types/brands";
+import { errorMessage } from "@/shared/lib/error";
 
 export type LoadSavedTracksResult =
   | { ok: true; tracks: TrackWithAddedAt[] }
   | { ok: false; reason: "unauthorized" | "unknown"; message: string };
 
 export type CreatePlaylistResult =
-  | { ok: true; playlistUrl: string; playlistId: string }
+  | { ok: true; playlistUrl: string; playlistId: PlaylistId }
   | { ok: false; reason: "unauthorized" | "invalid_input" | "unknown"; message: string };
 
 const createPlaylistInputSchema = z.object({
   name: z.string().min(1).max(100),
-  trackUris: z.array(z.string().min(1)).min(1),
+  trackUris: z
+    .array(z.string().min(1))
+    .min(1)
+    .transform((uris) => uris.map(createSpotifyTrackUri)),
 });
 
 export type CreatePlaylistInput = z.input<typeof createPlaylistInputSchema>;
@@ -35,7 +40,7 @@ export const loadSavedTracks = async (): Promise<LoadSavedTracksResult> => {
     return {
       ok: false,
       reason: "unknown",
-      message: error instanceof Error ? error.message : "曲の取得に失敗しました",
+      message: errorMessage(error, "曲の取得に失敗しました"),
     };
   }
 };
@@ -65,7 +70,7 @@ export const createPlaylist = async (input: CreatePlaylistInput): Promise<Create
     return {
       ok: false,
       reason: "unknown",
-      message: error instanceof Error ? error.message : "プレイリストの作成に失敗しました",
+      message: errorMessage(error, "プレイリストの作成に失敗しました"),
     };
   }
 };

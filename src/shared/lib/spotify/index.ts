@@ -1,4 +1,10 @@
 import { type AccessToken, type SavedTrack, SpotifyApi } from "@spotify/web-api-ts-sdk";
+import {
+  createPlaylistId,
+  createSpotifyTrackUri,
+  type PlaylistId,
+  type SpotifyTrackUri,
+} from "@/shared/types/brands";
 
 export type DateRange = {
   startDate: Date;
@@ -8,7 +14,7 @@ export type DateRange = {
 export type TrackWithAddedAt = {
   id: string;
   name: string;
-  uri: string;
+  uri: SpotifyTrackUri;
   artists: string;
   albumName: string;
   albumImageUrl: string | undefined;
@@ -38,7 +44,7 @@ export const createSpotifyClient = ({
 const mapSavedTrackToTrackWithAddedAt = (item: SavedTrack): TrackWithAddedAt => ({
   id: item.track.id,
   name: item.track.name,
-  uri: item.track.uri,
+  uri: createSpotifyTrackUri(item.track.uri),
   artists: item.track.artists.map((a) => a.name).join(", "),
   albumName: item.track.album.name,
   albumImageUrl: item.track.album.images[0]?.url,
@@ -73,7 +79,7 @@ export const filterTracksByDateRange = (
 type CreatePlaylistParams = {
   sdk: SpotifyApi;
   playlistName: string;
-  trackUris: string[];
+  trackUris: readonly SpotifyTrackUri[];
   description?: string;
   visibility?: "public" | "private";
 };
@@ -84,7 +90,7 @@ export const createPlaylistFromTracks = async ({
   trackUris,
   description,
   visibility = "private",
-}: CreatePlaylistParams): Promise<{ playlistId: string; playlistUrl: string }> => {
+}: CreatePlaylistParams): Promise<{ playlistId: PlaylistId; playlistUrl: string }> => {
   const playlist = await sdk.currentUser.playlists.createPlaylist({
     name: playlistName,
     public: visibility === "public",
@@ -98,15 +104,15 @@ export const createPlaylistFromTracks = async ({
   }
 
   return {
-    playlistId: playlist.id,
+    playlistId: createPlaylistId(playlist.id),
     playlistUrl: playlist.external_urls.spotify,
   };
 };
 
 type ReplacePlaylistTracksParams = {
   sdk: SpotifyApi;
-  playlistId: string;
-  trackUris: string[];
+  playlistId: PlaylistId;
+  trackUris: readonly SpotifyTrackUri[];
 };
 
 export const replacePlaylistTracks = async ({
@@ -127,7 +133,7 @@ export const replacePlaylistTracks = async ({
 
 type UpdatePlaylistDetailsParams = {
   sdk: SpotifyApi;
-  playlistId: string;
+  playlistId: PlaylistId;
   description: string;
 };
 
