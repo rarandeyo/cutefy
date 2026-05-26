@@ -40,8 +40,15 @@ const buildPlaylistDescription = (): string => {
 
 const buildDateRange = (period: SyncPeriod): DateRange => {
   const now = new Date();
-  const startDate = new Date(now);
-  startDate.setMonth(startDate.getMonth() - period.months);
+  const startDate = new Date(
+    now.getFullYear(),
+    now.getMonth() - period.months,
+    now.getDate(),
+    now.getHours(),
+    now.getMinutes(),
+    now.getSeconds(),
+    now.getMilliseconds(),
+  );
   return { startDate, endDate: now };
 };
 
