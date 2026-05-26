@@ -1,12 +1,9 @@
+"use client";
+
 import { useState, useTransition } from "react";
 import type { CalendarDate } from "@internationalized/date";
-import { authClient } from "@/lib/auth-client";
-import { clientEnv } from "@/lib/env";
-import {
-  createPlaylistFromTracks,
-  createSpotifyClient,
-  type TrackWithAddedAt,
-} from "@/lib/spotify";
+import { createPlaylist } from "@/app/app/actions";
+import type { TrackWithAddedAt } from "@/lib/spotify";
 import { INITIAL_PLAYLIST_STATE, type PlaylistState } from "@/types/playlist";
 
 const formatCalendarDate = (d: CalendarDate) => `${d.year}/${String(d.month).padStart(2, "0")}`;
@@ -36,34 +33,19 @@ export const usePlaylistCreation = (
     if (!playlistName.trim() || filteredTracks.length === 0) return;
 
     startCreatingTransition(async () => {
-      try {
-        const tokenResult = await authClient.getAccessToken({ providerId: "spotify" });
-        if (tokenResult.error || !tokenResult.data) {
-          setPlaylistState({ status: "error", message: "認証エラーが発生しました" });
-          return;
-        }
-
-        const trackUris = filteredTracks.map((t) => t.uri);
-        const sdk = createSpotifyClient({
-          clientId: clientEnv.NEXT_PUBLIC_SPOTIFY_CLIENT_ID,
-          accessToken: tokenResult.data.accessToken,
-        });
-        const result = await createPlaylistFromTracks({
-          sdk,
-          playlistName: playlistName.trim(),
-          trackUris,
-        });
-        setPlaylistState({
-          status: "success",
-          message: "プレイリストを作成しました！",
-          playlistUrl: result.playlistUrl,
-        });
-      } catch (e) {
-        setPlaylistState({
-          status: "error",
-          message: e instanceof Error ? e.message : "エラーが発生しました",
-        });
+      const result = await createPlaylist({
+        name: playlistName.trim(),
+        trackUris: filteredTracks.map((t) => t.uri),
+      });
+      if (!result.ok) {
+        setPlaylistState({ status: "error", message: result.message });
+        return;
       }
+      setPlaylistState({
+        status: "success",
+        message: "プレイリストを作成しました！",
+        playlistUrl: result.playlistUrl,
+      });
     });
   };
 

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type React from "react";
 import { Outfit, Geist } from "next/font/google";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 
@@ -24,7 +25,9 @@ type RootLayoutProps = Readonly<{
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="ja" className={cn("font-sans", geist.variable)}>
-      <body className={cn(outfit.variable, "antialiased")}>{children}</body>
+      <body className={cn(outfit.variable, "antialiased")}>
+        <NuqsAdapter>{children}</NuqsAdapter>
+      </body>
     </html>
   );
 }

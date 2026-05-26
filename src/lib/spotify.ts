@@ -15,11 +15,6 @@ export type TrackWithAddedAt = {
   addedAt: Date;
 };
 
-export type FetchProgress = {
-  loaded: number;
-  total: number;
-};
-
 type CreateSpotifyClientParams = {
   clientId: string;
   accessToken: string;
@@ -50,10 +45,7 @@ const mapSavedTrackToTrackWithAddedAt = (item: SavedTrack): TrackWithAddedAt => 
   addedAt: new Date(item.added_at),
 });
 
-export const fetchAllSavedTracks = async (
-  sdk: SpotifyApi,
-  onProgress?: (progress: FetchProgress) => void,
-): Promise<TrackWithAddedAt[]> => {
+export const fetchAllSavedTracks = async (sdk: SpotifyApi): Promise<TrackWithAddedAt[]> => {
   const allTracks: TrackWithAddedAt[] = [];
   const LIMIT = 50;
   let offset = 0;
@@ -65,7 +57,6 @@ export const fetchAllSavedTracks = async (
     allTracks.push(...mappedTracks);
     total = response.total;
     offset += LIMIT;
-    onProgress?.({ loaded: allTracks.length, total });
   } while (offset < total);
 
   return allTracks;

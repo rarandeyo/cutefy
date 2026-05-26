@@ -13,7 +13,7 @@ import {
 import { refreshAccessToken } from "./spotify-token";
 
 const workerEnvSchema = z.object({
-  NEXT_PUBLIC_SPOTIFY_CLIENT_ID: z.string().min(1),
+  SPOTIFY_CLIENT_ID: z.string().min(1),
   SPOTIFY_CLIENT_SECRET: z.string().min(1),
 });
 
@@ -175,7 +175,7 @@ export const updatePlaylists = async (
   env: CloudflareEnv,
   { skipEnabledCheck = false, userId }: { skipEnabledCheck?: boolean; userId?: string } = {},
 ): Promise<void> => {
-  const { NEXT_PUBLIC_SPOTIFY_CLIENT_ID: clientId, SPOTIFY_CLIENT_SECRET: clientSecret } =
+  const { SPOTIFY_CLIENT_ID: clientId, SPOTIFY_CLIENT_SECRET: clientSecret } =
     workerEnvSchema.parse(env);
 
   // When called from the API with a specific userId, sync only that user

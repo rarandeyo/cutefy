@@ -6,7 +6,8 @@ import { SettingsContent } from "@/components/SettingsContent";
 export const dynamic = "force-dynamic";
 
 export default async function Page() {
-  const session = await getAuth().api.getSession({
+  const auth = await getAuth();
+  const session = await auth.api.getSession({
     headers: await headers(),
   });
 

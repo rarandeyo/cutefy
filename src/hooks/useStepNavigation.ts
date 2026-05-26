@@ -1,12 +1,17 @@
-import { useState } from "react";
+"use client";
+
+import { parseAsInteger, useQueryState } from "nuqs";
 
 const MAX_STEP = 2;
+const clamp = (n: number) => Math.min(MAX_STEP, Math.max(0, n));
 
-export const useStepNavigation = (initialStep: number) => {
-  const [currentStep, setCurrentStep] = useState(initialStep);
+export const useStepNavigation = () => {
+  const [step, setStep] = useQueryState("step", parseAsInteger.withDefault(0));
 
-  const goBack = () => setCurrentStep((s) => Math.max(0, s - 1));
-  const goNext = () => setCurrentStep((s) => Math.min(MAX_STEP, s + 1));
-
-  return { currentStep, setCurrentStep, goBack, goNext };
+  return {
+    currentStep: clamp(step),
+    setCurrentStep: (s: number) => setStep(clamp(s)),
+    goBack: () => setStep((s) => clamp(s - 1)),
+    goNext: () => setStep((s) => clamp(s + 1)),
+  };
 };

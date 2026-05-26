@@ -4,7 +4,8 @@ import { getAuth } from "@/lib/auth";
 import { updatePlaylists } from "@/lib/playlist-sync";
 
 const requireSession = async (request: Request) => {
-  const session = await getAuth().api.getSession({ headers: request.headers });
+  const auth = await getAuth();
+  const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
     throw new Error("Unauthorized");
   }
@@ -23,7 +24,7 @@ export async function GET(request: Request) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { env } = getCloudflareContext();
+  const { env } = await getCloudflareContext({ async: true });
   const row = await env.DB.prepare("SELECT enabled FROM sync_settings WHERE user_id = ?")
     .bind(session.user.id)
     .first<{ enabled: number }>();
@@ -45,7 +46,7 @@ export async function POST(request: Request) {
   }
 
   const { enabled } = parseResult.data;
-  const { env } = getCloudflareContext();
+  const { env } = await getCloudflareContext({ async: true });
 
   await env.DB.prepare(
     "INSERT OR REPLACE INTO sync_settings (user_id, enabled, updated_at) VALUES (?, ?, ?)",

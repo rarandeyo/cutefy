@@ -1,8 +1,36 @@
-import { useState } from "react";
-import { type CalendarDate, getLocalTimeZone, today, toZoned } from "@internationalized/date";
+"use client";
+
+import {
+  type CalendarDate,
+  getLocalTimeZone,
+  parseDate,
+  today,
+  toZoned,
+} from "@internationalized/date";
+import { createParser, parseAsInteger, parseAsStringEnum, useQueryStates } from "nuqs";
 import { type DateRange, filterTracksByDateRange, type TrackWithAddedAt } from "@/lib/spotify";
 
 export type SortOrder = "asc" | "desc";
+
+const parseAsCalendarDate = createParser<CalendarDate>({
+  parse(value) {
+    try {
+      return parseDate(value);
+    } catch {
+      return null;
+    }
+  },
+  serialize(value) {
+    return value.toString();
+  },
+});
+
+const filterParsers = {
+  from: parseAsCalendarDate,
+  to: parseAsCalendarDate,
+  sort: parseAsStringEnum<SortOrder>(["asc", "desc"]).withDefault("asc"),
+  preset: parseAsInteger,
+};
 
 const getDefaultDateRange = () => {
   const end = today(getLocalTimeZone());
@@ -20,52 +48,50 @@ const calendarDateToDate = (date: CalendarDate, endOfDay = false): Date => {
 };
 
 export const useDateFilter = (allTracks: TrackWithAddedAt[]) => {
-  const [dateRange, setDateRange] = useState(getDefaultDateRange);
-  const [activePreset, setActivePreset] = useState<number | null>(1);
-  const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
+  const [{ from, to, sort, preset }, setState] = useQueryStates(filterParsers);
+
+  const defaults = getDefaultDateRange();
+  const startDate = from ?? defaults.startDate;
+  const endDate = to ?? defaults.endDate;
 
   const nativeDateRange: DateRange = {
-    startDate: calendarDateToDate(dateRange.startDate),
-    endDate: calendarDateToDate(dateRange.endDate, true),
+    startDate: calendarDateToDate(startDate),
+    endDate: calendarDateToDate(endDate, true),
   };
 
-  const filtered = filterTracksByDateRange(allTracks, nativeDateRange);
-  const filteredTracks = filtered.toSorted((a, b) =>
-    sortOrder === "asc"
+  const filteredTracks = filterTracksByDateRange(allTracks, nativeDateRange).toSorted((a, b) =>
+    sort === "asc"
       ? a.addedAt.getTime() - b.addedAt.getTime()
       : b.addedAt.getTime() - a.addedAt.getTime(),
   );
 
-  const isDateRangeValid = dateRange.startDate.compare(dateRange.endDate) <= 0;
+  const isDateRangeValid = startDate.compare(endDate) <= 0;
   const dateError = isDateRangeValid ? null : "開始日は終了日以前に設定してください";
 
   const setDateRangeValue = (value: { start: CalendarDate; end: CalendarDate } | null) => {
-    if (value) {
-      setDateRange({ startDate: value.start, endDate: value.end });
-      setActivePreset(null);
-    }
+    if (!value) return;
+    void setState({ from: value.start, to: value.end, preset: null });
   };
 
   const applyPreset = (months: number) => {
     const end = today(getLocalTimeZone());
     const start = end.subtract({ months });
-    setDateRange({ startDate: start, endDate: end });
-    setActivePreset(months);
+    void setState({ from: start, to: end, preset: months });
   };
 
   const toggleSortOrder = () => {
-    setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+    void setState({ sort: sort === "asc" ? "desc" : "asc" });
   };
 
   return {
-    dateRange,
+    dateRange: { startDate, endDate },
     filteredTracks,
     setDateRangeValue,
     applyPreset,
-    activePreset,
+    activePreset: preset,
     isDateRangeValid,
     dateError,
-    sortOrder,
+    sortOrder: sort,
     toggleSortOrder,
   };
 };

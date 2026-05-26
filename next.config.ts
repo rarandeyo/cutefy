@@ -1,10 +1,16 @@
 import "./src/lib/env";
 import "./src/lib/env.server";
 
+import path from "node:path";
+import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 import type { NextConfig } from "next";
 
+initOpenNextCloudflareForDev();
+
 const nextConfig: NextConfig = {
-  /* config options here */
+  turbopack: {
+    root: path.resolve(import.meta.dirname),
+  },
 };
 
 export default nextConfig;

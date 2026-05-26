@@ -1,14 +1,14 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { betterAuth } from "better-auth";
-import { clientEnv } from "./env";
 import { env } from "./env.server";
 
 // Called per-request: getCloudflareContext() is only available at request time, not during build
-export const getAuth = () =>
-  betterAuth({
+export const getAuth = async () => {
+  const { env: cfEnv } = await getCloudflareContext({ async: true });
+  return betterAuth({
     baseURL: env.BETTER_AUTH_URL,
     secret: env.BETTER_AUTH_SECRET,
-    database: getCloudflareContext().env.DB,
+    database: cfEnv.DB,
     session: {
       cookieCache: {
         enabled: true,
@@ -17,7 +17,7 @@ export const getAuth = () =>
     },
     socialProviders: {
       spotify: {
-        clientId: clientEnv.NEXT_PUBLIC_SPOTIFY_CLIENT_ID,
+        clientId: env.SPOTIFY_CLIENT_ID,
         clientSecret: env.SPOTIFY_CLIENT_SECRET,
         scope: [
           "user-read-email",
@@ -29,3 +29,4 @@ export const getAuth = () =>
       },
     },
   });
+};
