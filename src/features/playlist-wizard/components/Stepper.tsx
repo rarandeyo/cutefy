@@ -3,7 +3,7 @@ import { Check } from "lucide-react";
 import type React from "react";
 import { Fragment } from "react";
 
-type Step = {
+export type Step = {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
 };

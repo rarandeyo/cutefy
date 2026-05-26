@@ -38,7 +38,7 @@ const filterParsers = {
 
 type DateFilter = {
   dateRange: { startDate: CalendarDate; endDate: CalendarDate };
-  filteredTracks: TrackWithAddedAt[];
+  filteredTracks: readonly TrackWithAddedAt[];
   setDateRangeValue: (value: { start: CalendarDate; end: CalendarDate } | null) => void;
   handleApplyPreset: (months: number) => void;
   activePreset: number | null;
@@ -63,7 +63,7 @@ const calendarDateToDate = (date: CalendarDate, endOfDay = false): Date => {
   return d;
 };
 
-export const useDateFilter = (allTracks: TrackWithAddedAt[]): DateFilter => {
+export const useDateFilter = (allTracks: readonly TrackWithAddedAt[]): DateFilter => {
   const [{ from, to, sort, preset }, setState] = useQueryStates(filterParsers);
 
   const defaults = getDefaultDateRange();

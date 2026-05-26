@@ -11,7 +11,7 @@ import { createSpotifyTrackUri, type PlaylistId } from "@/shared/types/brands";
 import { errorMessage } from "@/shared/lib/error";
 
 export type LoadSavedTracksResult =
-  | { ok: true; tracks: TrackWithAddedAt[] }
+  | { ok: true; tracks: readonly TrackWithAddedAt[] }
   | { ok: false; reason: "unauthorized" | "unknown"; message: string };
 
 export type CreatePlaylistResult =

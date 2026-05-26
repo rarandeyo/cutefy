@@ -21,7 +21,7 @@ const cacheDataSchema = z.object({
 });
 
 let listeners: (() => void)[] = [];
-let cachedResult: TrackWithAddedAt[] | null = null;
+let cachedResult: readonly TrackWithAddedAt[] | null = null;
 let cachedRaw: string | null = null;
 
 const emitChange = () => {
@@ -32,7 +32,7 @@ const emitChange = () => {
   }
 };
 
-const parseCache = (raw: string): TrackWithAddedAt[] | null => {
+const parseCache = (raw: string): readonly TrackWithAddedAt[] | null => {
   try {
     const parsed = cacheDataSchema.safeParse(JSON.parse(raw));
     if (!parsed.success) {
@@ -49,9 +49,9 @@ const parseCache = (raw: string): TrackWithAddedAt[] | null => {
 
 type TrackCache = {
   subscribe: (listener: () => void) => () => void;
-  getSnapshot: () => TrackWithAddedAt[] | null;
+  getSnapshot: () => readonly TrackWithAddedAt[] | null;
   getServerSnapshot: () => null;
-  set: (tracks: TrackWithAddedAt[]) => void;
+  set: (tracks: readonly TrackWithAddedAt[]) => void;
   clear: () => void;
 };
 

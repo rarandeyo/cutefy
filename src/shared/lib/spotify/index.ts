@@ -51,7 +51,9 @@ const mapSavedTrackToTrackWithAddedAt = (item: SavedTrack): TrackWithAddedAt => 
   addedAt: new Date(item.added_at),
 });
 
-export const fetchAllSavedTracks = async (sdk: SpotifyApi): Promise<TrackWithAddedAt[]> => {
+export const fetchAllSavedTracks = async (
+  sdk: SpotifyApi,
+): Promise<readonly TrackWithAddedAt[]> => {
   const allTracks: TrackWithAddedAt[] = [];
   const LIMIT = 50;
   let offset = 0;
@@ -69,9 +71,9 @@ export const fetchAllSavedTracks = async (sdk: SpotifyApi): Promise<TrackWithAdd
 };
 
 export const filterTracksByDateRange = (
-  tracks: TrackWithAddedAt[],
+  tracks: readonly TrackWithAddedAt[],
   dateRange: DateRange,
-): TrackWithAddedAt[] =>
+): readonly TrackWithAddedAt[] =>
   tracks.filter(
     (track) => track.addedAt >= dateRange.startDate && track.addedAt <= dateRange.endDate,
   );

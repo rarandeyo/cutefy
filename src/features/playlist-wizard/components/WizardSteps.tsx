@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight, ListMusic, Music, Sparkles } from "lucide-re
 import { CreatePlaylistStep } from "./CreatePlaylistStep";
 import { LoadTracksStep } from "./LoadTracksStep";
 import { SelectDateStep } from "./SelectDateStep";
-import { Stepper } from "./Stepper";
+import { Stepper, type Step } from "./Stepper";
 import { useDateFilter } from "@/features/playlist-wizard/hooks/use-date-filter";
 import { usePlaylistCreation } from "@/features/playlist-wizard/hooks/use-playlist-creation";
 import { useSavedTracks } from "@/features/playlist-wizard/hooks/use-saved-tracks";
@@ -16,7 +16,7 @@ const STEPS = [
   { label: "曲を取得", icon: Music },
   { label: "期間・確認", icon: ListMusic },
   { label: "作成", icon: Sparkles },
-] as const;
+] as const satisfies readonly Step[];
 
 export const WizardSteps: React.FC = () => {
   const handleNextRef = useRef<() => void>(undefined);

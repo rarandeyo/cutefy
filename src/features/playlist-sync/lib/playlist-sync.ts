@@ -25,14 +25,18 @@ const workerEnvSchema = z.object({
   SPOTIFY_CLIENT_SECRET: z.string().min(1),
 });
 
+type SyncPeriod = {
+  key: string;
+  label: string;
+  months: number;
+};
+
 const SYNC_PERIODS = [
   { key: "1month", label: "1 Month", months: 1 },
   { key: "3months", label: "3 Months", months: 3 },
   { key: "6months", label: "6 Months", months: 6 },
   { key: "1year", label: "1 Year", months: 12 },
-] as const;
-
-type SyncPeriod = (typeof SYNC_PERIODS)[number];
+] as const satisfies readonly SyncPeriod[];
 
 const buildPlaylistDescription = (): string => {
   const date = new Date().toISOString().slice(0, 10);
@@ -91,7 +95,7 @@ const syncPeriod = async (
   db: D1Database,
   userId: UserId,
   period: SyncPeriod,
-  allTracks: TrackWithAddedAt[],
+  allTracks: readonly TrackWithAddedAt[],
 ): Promise<void> => {
   const dateRange = buildDateRange(period);
   const filteredTracks = filterTracksByDateRange(allTracks, dateRange);
@@ -132,7 +136,7 @@ const syncPeriod = async (
   );
 };
 
-const getEnabledUserIds = async (db: D1Database): Promise<UserId[]> => {
+const getEnabledUserIds = async (db: D1Database): Promise<readonly UserId[]> => {
   const { results } = await db
     .prepare("SELECT user_id FROM sync_settings WHERE enabled = 1")
     .all<{ user_id: string }>();

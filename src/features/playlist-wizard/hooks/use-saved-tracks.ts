@@ -23,7 +23,7 @@ const fetchTracks = async (
 };
 
 type SavedTracks = {
-  allTracks: TrackWithAddedAt[];
+  allTracks: readonly TrackWithAddedAt[];
   isLoadingTracks: boolean;
   handleLoadTracks: (onComplete?: () => void) => void;
   error: string | null;

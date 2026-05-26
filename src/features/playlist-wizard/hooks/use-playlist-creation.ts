@@ -22,7 +22,7 @@ const generateDefaultName = (start: CalendarDate, end: CalendarDate): string =>
   `お気に入り ${formatCalendarDate(start)} - ${formatCalendarDate(end)}`;
 
 export const usePlaylistCreation = (
-  filteredTracks: TrackWithAddedAt[],
+  filteredTracks: readonly TrackWithAddedAt[],
   dateRange: { startDate: CalendarDate; endDate: CalendarDate },
 ): PlaylistCreation => {
   const [manualName, setManualName] = useState("");

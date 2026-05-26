@@ -24,12 +24,17 @@ type SelectDateStepProps = {
   onToggleSortOrder: () => void;
 };
 
+type Preset = {
+  label: string;
+  months: number;
+};
+
 const PRESETS = [
   { label: "1ヶ月", months: 1 },
   { label: "3ヶ月", months: 3 },
   { label: "半年", months: 6 },
   { label: "1年", months: 12 },
-] as const;
+] as const satisfies readonly Preset[];
 
 export const SelectDateStep: React.FC<SelectDateStepProps> = ({
   dateRange,
