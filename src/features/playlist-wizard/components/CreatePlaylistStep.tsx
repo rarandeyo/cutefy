@@ -8,7 +8,6 @@ type CreatePlaylistStepProps = {
   playlistName: string;
   onPlaylistNameChange: (name: string) => void;
   playlistState: PlaylistState;
-  isCreating: boolean;
   filteredTrackCount: number;
   onCreatePlaylist: () => void;
   onReset: () => void;
@@ -18,7 +17,6 @@ export const CreatePlaylistStep: React.FC<CreatePlaylistStepProps> = ({
   playlistName,
   onPlaylistNameChange,
   playlistState,
-  isCreating,
   filteredTrackCount,
   onCreatePlaylist,
   onReset,
@@ -32,6 +30,8 @@ export const CreatePlaylistStep: React.FC<CreatePlaylistStepProps> = ({
       />
     );
   }
+
+  const isCreating = playlistState.status === "creating";
 
   return (
     <div className="flex h-full flex-col items-center">

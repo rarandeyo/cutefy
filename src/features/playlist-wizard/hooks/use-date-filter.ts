@@ -13,6 +13,7 @@ import {
   filterTracksByDateRange,
   type TrackWithAddedAt,
 } from "@/shared/lib/spotify";
+import type { DateRangeValidation } from "@/features/playlist-wizard/types";
 
 export type SortOrder = "asc" | "desc";
 
@@ -42,8 +43,7 @@ type DateFilter = {
   setDateRangeValue: (value: { start: CalendarDate; end: CalendarDate } | null) => void;
   handleApplyPreset: (months: number) => void;
   activePreset: number | null;
-  isDateRangeValid: boolean;
-  dateError: string | null;
+  validation: DateRangeValidation;
   sortOrder: SortOrder;
   handleToggleSortOrder: () => void;
 };
@@ -61,6 +61,13 @@ const calendarDateToDate = (date: CalendarDate, endOfDay = false): Date => {
     return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
   }
   return d;
+};
+
+const parseDateRange = (start: CalendarDate, end: CalendarDate): DateRangeValidation => {
+  if (start.compare(end) <= 0) {
+    return { status: "valid" };
+  }
+  return { status: "invalid", message: "開始日は終了日以前に設定してください" };
 };
 
 export const useDateFilter = (allTracks: readonly TrackWithAddedAt[]): DateFilter => {
@@ -81,21 +88,20 @@ export const useDateFilter = (allTracks: readonly TrackWithAddedAt[]): DateFilte
       : b.addedAt.getTime() - a.addedAt.getTime(),
   );
 
-  const isDateRangeValid = startDate.compare(endDate) <= 0;
-  const dateError = isDateRangeValid ? null : "開始日は終了日以前に設定してください";
+  const validation = parseDateRange(startDate, endDate);
 
-  const setDateRangeValue = (value: { start: CalendarDate; end: CalendarDate } | null) => {
+  const setDateRangeValue = (value: { start: CalendarDate; end: CalendarDate } | null): void => {
     if (!value) return;
     void setState({ from: value.start, to: value.end, preset: null });
   };
 
-  const handleApplyPreset = (months: number) => {
+  const handleApplyPreset = (months: number): void => {
     const end = today(getLocalTimeZone());
     const start = end.subtract({ months });
     void setState({ from: start, to: end, preset: months });
   };
 
-  const handleToggleSortOrder = () => {
+  const handleToggleSortOrder = (): void => {
     void setState({ sort: sort === "asc" ? "desc" : "asc" });
   };
 
@@ -105,8 +111,7 @@ export const useDateFilter = (allTracks: readonly TrackWithAddedAt[]): DateFilte
     setDateRangeValue,
     handleApplyPreset,
     activePreset: preset,
-    isDateRangeValid,
-    dateError,
+    validation,
     sortOrder: sort,
     handleToggleSortOrder,
   };

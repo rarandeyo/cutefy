@@ -12,13 +12,14 @@ import {
 import { ArrowDownUp } from "lucide-react";
 import type { TrackWithAddedAt } from "@/shared/lib/spotify";
 import type { SortOrder } from "@/features/playlist-wizard/hooks/use-date-filter";
+import type { DateRangeValidation } from "@/features/playlist-wizard/types";
 
 type SelectDateStepProps = {
   dateRange: { startDate: CalendarDate; endDate: CalendarDate };
   onDateRangeChange: (value: { start: CalendarDate; end: CalendarDate } | null) => void;
   onApplyPreset: (months: number) => void;
   activePreset: number | null;
-  dateError: string | null;
+  validation: DateRangeValidation;
   filteredTracks: readonly TrackWithAddedAt[];
   sortOrder: SortOrder;
   onToggleSortOrder: () => void;
@@ -41,7 +42,7 @@ export const SelectDateStep: React.FC<SelectDateStepProps> = ({
   onDateRangeChange,
   onApplyPreset,
   activePreset,
-  dateError,
+  validation,
   filteredTracks,
   sortOrder,
   onToggleSortOrder,
@@ -106,11 +107,11 @@ export const SelectDateStep: React.FC<SelectDateStepProps> = ({
         </RangeCalendar>
       </DateRangePicker.Popover>
     </DateRangePicker>
-    {dateError && (
+    {validation.status === "invalid" && (
       <Alert status="danger" className="rounded-lg">
         <Alert.Indicator />
         <Alert.Content>
-          <Alert.Description className="text-sm">{dateError}</Alert.Description>
+          <Alert.Description className="text-sm">{validation.message}</Alert.Description>
         </Alert.Content>
       </Alert>
     )}

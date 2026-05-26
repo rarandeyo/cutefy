@@ -3,30 +3,11 @@
 import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { loadSavedTracks } from "@/features/playlist-wizard/actions";
 import { trackCache } from "@/features/playlist-wizard/lib/track-cache";
-import type { TrackWithAddedAt } from "@/shared/lib/spotify";
-
-const fetchTracks = async (
-  startTransition: React.TransitionStartFunction,
-  setError: React.Dispatch<React.SetStateAction<string | null>>,
-  onComplete?: () => void,
-) => {
-  startTransition(async () => {
-    setError(null);
-    const result = await loadSavedTracks();
-    if (!result.ok) {
-      setError(result.message);
-      return;
-    }
-    trackCache.set(result.tracks);
-    onComplete?.();
-  });
-};
+import type { SavedTracksState } from "@/features/playlist-wizard/types";
 
 type SavedTracks = {
-  allTracks: readonly TrackWithAddedAt[];
-  isLoadingTracks: boolean;
+  state: SavedTracksState;
   handleLoadTracks: (onComplete?: () => void) => void;
-  error: string | null;
 };
 
 export const useSavedTracks = (onAutoFetchComplete?: () => void): SavedTracks => {
@@ -35,24 +16,48 @@ export const useSavedTracks = (onAutoFetchComplete?: () => void): SavedTracks =>
     trackCache.getSnapshot,
     trackCache.getServerSnapshot,
   );
-  const allTracks = cachedTracks ?? [];
+  const tracks = cachedTracks ?? [];
   const [isLoadingTracks, startLoadingTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
+  const [errorState, setErrorState] = useState<string | null>(null);
 
   const onAutoFetchCompleteRef = useRef(onAutoFetchComplete);
   onAutoFetchCompleteRef.current = onAutoFetchComplete;
 
-  // キャッシュがない場合、マウント時に自動取得
+  const handleLoadTracks = (onComplete?: () => void): void => {
+    startLoadingTransition(async () => {
+      setErrorState(null);
+      const result = await loadSavedTracks();
+      if (!result.ok) {
+        setErrorState(result.message);
+        return;
+      }
+      trackCache.set(result.tracks);
+      onComplete?.();
+    });
+  };
+
+  // キャッシュがない場合、マウント時に自動取得 (commit 6 で SC 化により完全削除予定)
   const autoFetchStarted = useRef(false);
   useEffect(() => {
     if (cachedTracks !== null || autoFetchStarted.current) return;
     autoFetchStarted.current = true;
-    fetchTracks(startLoadingTransition, setError, () => onAutoFetchCompleteRef.current?.());
+    startLoadingTransition(async () => {
+      setErrorState(null);
+      const result = await loadSavedTracks();
+      if (!result.ok) {
+        setErrorState(result.message);
+        return;
+      }
+      trackCache.set(result.tracks);
+      onAutoFetchCompleteRef.current?.();
+    });
   }, [cachedTracks, startLoadingTransition]);
 
-  const handleLoadTracks = (onComplete?: () => void) => {
-    fetchTracks(startLoadingTransition, setError, onComplete);
-  };
+  const state: SavedTracksState = errorState
+    ? { status: "error", tracks, message: errorState }
+    : isLoadingTracks
+      ? { status: "loading", tracks }
+      : { status: "ready", tracks };
 
-  return { allTracks, isLoadingTracks, handleLoadTracks, error };
+  return { state, handleLoadTracks };
 };

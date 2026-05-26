@@ -21,9 +21,7 @@ const STEPS = [
 export const WizardSteps: React.FC = () => {
   const handleNextRef = useRef<() => void>(undefined);
 
-  const { allTracks, isLoadingTracks, handleLoadTracks, error } = useSavedTracks(() =>
-    handleNextRef.current?.(),
-  );
+  const { state: tracksState, handleLoadTracks } = useSavedTracks(() => handleNextRef.current?.());
   const { currentStep, setCurrentStep, handleBack, handleNext } = useStepNavigation();
   handleNextRef.current = handleNext;
 
@@ -33,21 +31,15 @@ export const WizardSteps: React.FC = () => {
     setDateRangeValue,
     handleApplyPreset,
     activePreset,
-    isDateRangeValid,
-    dateError,
+    validation,
     sortOrder,
     handleToggleSortOrder,
-  } = useDateFilter(allTracks);
-  const {
-    playlistName,
-    setPlaylistName,
-    playlistState,
-    isCreatingPlaylist,
-    handleCreatePlaylist,
-    handleReset,
-  } = usePlaylistCreation(filteredTracks, dateRange);
+  } = useDateFilter(tracksState.tracks);
+  const { playlistName, setPlaylistName, playlistState, handleCreatePlaylist, handleReset } =
+    usePlaylistCreation(filteredTracks, dateRange);
 
-  const nextDisabled = currentStep === 1 && (filteredTracks.length === 0 || !isDateRangeValid);
+  const nextDisabled =
+    currentStep === 1 && (filteredTracks.length === 0 || validation.status === "invalid");
 
   return (
     <>
@@ -57,9 +49,7 @@ export const WizardSteps: React.FC = () => {
         <div key={currentStep} className="h-full animate-[fade-in_0.3s_ease-out]">
           {currentStep === 0 && (
             <LoadTracksStep
-              isLoading={isLoadingTracks}
-              trackCount={allTracks.length}
-              error={error}
+              state={tracksState}
               onLoadTracks={handleLoadTracks}
               onNext={handleNext}
             />
@@ -70,7 +60,7 @@ export const WizardSteps: React.FC = () => {
               onDateRangeChange={setDateRangeValue}
               onApplyPreset={handleApplyPreset}
               activePreset={activePreset}
-              dateError={dateError}
+              validation={validation}
               filteredTracks={filteredTracks}
               sortOrder={sortOrder}
               onToggleSortOrder={handleToggleSortOrder}
@@ -81,7 +71,6 @@ export const WizardSteps: React.FC = () => {
               playlistName={playlistName}
               onPlaylistNameChange={setPlaylistName}
               playlistState={playlistState}
-              isCreating={isCreatingPlaylist}
               filteredTrackCount={filteredTracks.length}
               onCreatePlaylist={handleCreatePlaylist}
               onReset={() => handleReset(() => setCurrentStep(1))}
