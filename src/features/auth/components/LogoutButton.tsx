@@ -3,7 +3,7 @@
 import { Button } from "@heroui/react";
 import { LogOut } from "lucide-react";
 import { signOut } from "@/shared/lib/auth/client";
-import { trackCache } from "@/lib/track-cache";
+import { trackCache } from "@/features/playlist-wizard/lib/track-cache";
 
 export const LogoutButton: React.FC = () => (
   <Button

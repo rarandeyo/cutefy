@@ -2,9 +2,9 @@
 
 import { useState, useTransition } from "react";
 import type { CalendarDate } from "@internationalized/date";
-import { createPlaylist } from "@/app/app/actions";
+import { createPlaylist } from "@/features/playlist-wizard/actions";
 import type { TrackWithAddedAt } from "@/shared/lib/spotify";
-import { INITIAL_PLAYLIST_STATE, type PlaylistState } from "@/types/playlist";
+import { INITIAL_PLAYLIST_STATE, type PlaylistState } from "@/features/playlist-wizard/types";
 
 type PlaylistCreation = {
   playlistName: string;

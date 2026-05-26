@@ -1,8 +1,8 @@
 import type React from "react";
 import { Alert, Button, Input, Spinner } from "@heroui/react";
 import { ListMusic } from "lucide-react";
-import { CompletionScreen } from "@/components/CompletionScreen";
-import type { PlaylistState } from "@/types/playlist";
+import { CompletionScreen } from "./CompletionScreen";
+import type { PlaylistState } from "@/features/playlist-wizard/types";
 
 type CreatePlaylistStepProps = {
   playlistName: string;

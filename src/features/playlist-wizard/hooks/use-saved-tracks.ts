@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
-import { loadSavedTracks } from "@/app/app/actions";
-import { trackCache } from "@/lib/track-cache";
+import { loadSavedTracks } from "@/features/playlist-wizard/actions";
+import { trackCache } from "@/features/playlist-wizard/lib/track-cache";
 import type { TrackWithAddedAt } from "@/shared/lib/spotify";
 
 const fetchTracks = async (

@@ -1,6 +1,6 @@
 import { Alert, Button, Spinner } from "@heroui/react";
 import { CheckCircle, Music } from "lucide-react";
-import { StepNav } from "@/components/StepNav";
+import { StepNav } from "./StepNav";
 
 type LoadTracksStepProps = {
   isLoading: boolean;

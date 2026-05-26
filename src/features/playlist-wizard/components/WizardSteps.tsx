@@ -3,14 +3,14 @@
 import { useRef } from "react";
 import { Button } from "@heroui/react";
 import { ChevronLeft, ChevronRight, ListMusic, Music, Sparkles } from "lucide-react";
-import { CreatePlaylistStep } from "@/components/CreatePlaylistStep";
-import { LoadTracksStep } from "@/components/LoadTracksStep";
-import { SelectDateStep } from "@/components/SelectDateStep";
-import { Stepper } from "@/components/Stepper";
-import { useDateFilter } from "@/hooks/use-date-filter";
-import { usePlaylistCreation } from "@/hooks/use-playlist-creation";
-import { useSavedTracks } from "@/hooks/use-saved-tracks";
-import { useStepNavigation } from "@/hooks/use-step-navigation";
+import { CreatePlaylistStep } from "./CreatePlaylistStep";
+import { LoadTracksStep } from "./LoadTracksStep";
+import { SelectDateStep } from "./SelectDateStep";
+import { Stepper } from "./Stepper";
+import { useDateFilter } from "@/features/playlist-wizard/hooks/use-date-filter";
+import { usePlaylistCreation } from "@/features/playlist-wizard/hooks/use-playlist-creation";
+import { useSavedTracks } from "@/features/playlist-wizard/hooks/use-saved-tracks";
+import { useStepNavigation } from "@/features/playlist-wizard/hooks/use-step-navigation";
 
 const STEPS = [
   { label: "曲を取得", icon: Music },

@@ -1,6 +1,6 @@
 import { Github, Settings } from "lucide-react";
 import Link from "next/link";
-import { LogoutButton } from "./LogoutButton";
+import { LogoutButton } from "@/features/auth/components/LogoutButton";
 
 export const Header: React.FC = () => (
   <header className="flex items-center justify-between pb-8">

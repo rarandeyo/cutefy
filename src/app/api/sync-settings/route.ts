@@ -1,7 +1,7 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { z } from "zod";
 import { getAuth } from "@/shared/lib/auth/server";
-import { updatePlaylists } from "@/lib/playlist-sync";
+import { updatePlaylists } from "@/features/playlist-sync/lib/playlist-sync";
 import { createUserId } from "@/shared/types/brands";
 import { errorMessage } from "@/shared/lib/error";
 

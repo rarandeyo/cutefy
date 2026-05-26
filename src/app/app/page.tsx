@@ -4,7 +4,7 @@ import type React from "react";
 import { getAuth } from "@/shared/lib/auth/server";
 
 export const dynamic = "force-dynamic";
-import { MainContent } from "@/components/MainContent";
+import { MainContent } from "@/features/playlist-wizard/components/MainContent";
 
 export default async function Page(): Promise<React.JSX.Element> {
   const auth = await getAuth();
