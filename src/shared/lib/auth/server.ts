@@ -1,6 +1,6 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { betterAuth } from "better-auth";
-import { env } from "./env.server";
+import { env } from "@/shared/lib/env/server";
 
 const buildAuth = (db: D1Database) =>
   betterAuth({

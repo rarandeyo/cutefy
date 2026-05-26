@@ -2,9 +2,9 @@ import "server-only";
 
 import { headers } from "next/headers";
 import type { SpotifyApi } from "@spotify/web-api-ts-sdk";
-import { getAuth } from "./auth";
-import { env } from "./env.server";
-import { createSpotifyClient } from "./spotify";
+import { getAuth } from "@/shared/lib/auth/server";
+import { env } from "@/shared/lib/env/server";
+import { createSpotifyClient } from ".";
 
 export class UnauthorizedError extends Error {
   constructor(message = "Unauthorized") {

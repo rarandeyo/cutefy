@@ -92,7 +92,7 @@
       }
     },
     {
-      "files": ["src/lib/env.ts", "src/lib/env.server.ts"],
+      "files": ["src/shared/lib/env/client.ts", "src/shared/lib/env/server.ts"],
       "rules": {
         "node/no-process-env": "off"
       }

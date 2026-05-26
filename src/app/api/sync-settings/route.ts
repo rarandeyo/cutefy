@@ -1,6 +1,6 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { z } from "zod";
-import { getAuth } from "@/lib/auth";
+import { getAuth } from "@/shared/lib/auth/server";
 import { updatePlaylists } from "@/lib/playlist-sync";
 
 const requireSession = async (request: Request) => {

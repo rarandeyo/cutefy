@@ -9,9 +9,9 @@ import {
   updatePlaylistDetails,
   type DateRange,
   type TrackWithAddedAt,
-} from "./spotify";
-import { clientEnv } from "./env";
-import { refreshAccessToken } from "./spotify-token";
+} from "@/shared/lib/spotify";
+import { clientEnv } from "@/shared/lib/env/client";
+import { refreshAccessToken } from "@/shared/lib/spotify/token";
 
 const workerEnvSchema = z.object({
   SPOTIFY_CLIENT_ID: z.string().min(1),

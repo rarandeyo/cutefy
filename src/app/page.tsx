@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 import type React from "react";
-import { getAuth } from "@/lib/auth";
+import { getAuth } from "@/shared/lib/auth/server";
 
 export const dynamic = "force-dynamic";
 import { LoginSection } from "@/components/LoginSection";

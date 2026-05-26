@@ -5,8 +5,8 @@ import {
   createPlaylistFromTracks,
   fetchAllSavedTracks,
   type TrackWithAddedAt,
-} from "@/lib/spotify";
-import { getSpotifyClientForCurrentUser, UnauthorizedError } from "@/lib/spotify-server";
+} from "@/shared/lib/spotify";
+import { getSpotifyClientForCurrentUser, UnauthorizedError } from "@/shared/lib/spotify/server";
 
 export type LoadSavedTracksResult =
   | { ok: true; tracks: TrackWithAddedAt[] }

@@ -1,6 +1,6 @@
 "use client";
 
-import { signInWithSpotify } from "@/lib/auth-client";
+import { signInWithSpotify } from "@/shared/lib/auth/client";
 import { Button } from "@heroui/react";
 import { Github, ListMusic } from "lucide-react";
 import Link from "next/link";

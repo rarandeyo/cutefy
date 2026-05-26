@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { TrackWithAddedAt } from "./spotify";
+import type { TrackWithAddedAt } from "@/shared/lib/spotify";
 
 const CACHE_KEY = "spotify-tracks";
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24時間

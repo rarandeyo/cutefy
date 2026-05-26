@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { loadSavedTracks } from "@/app/app/actions";
 import { trackCache } from "@/lib/track-cache";
-import type { TrackWithAddedAt } from "@/lib/spotify";
+import type { TrackWithAddedAt } from "@/shared/lib/spotify";
 
 const fetchTracks = async (
   startTransition: React.TransitionStartFunction,

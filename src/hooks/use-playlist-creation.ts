@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import type { CalendarDate } from "@internationalized/date";
 import { createPlaylist } from "@/app/app/actions";
-import type { TrackWithAddedAt } from "@/lib/spotify";
+import type { TrackWithAddedAt } from "@/shared/lib/spotify";
 import { INITIAL_PLAYLIST_STATE, type PlaylistState } from "@/types/playlist";
 
 type PlaylistCreation = {

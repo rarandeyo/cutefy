@@ -3,7 +3,7 @@ import type React from "react";
 import { Outfit, Geist } from "next/font/google";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import "./globals.css";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/lib/utils";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 

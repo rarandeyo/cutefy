@@ -1,5 +1,5 @@
-import "./src/lib/env";
-import "./src/lib/env.server";
+import "./src/shared/lib/env/client";
+import "./src/shared/lib/env/server";
 
 import path from "node:path";
 import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
