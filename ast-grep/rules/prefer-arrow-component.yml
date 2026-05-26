@@ -1,0 +1,22 @@
+id: prefer-arrow-component
+language: Tsx
+severity: warning
+message: コンポーネントは const + React.FC + アロー関数で書く (ルーティングファイルを除く)
+note: |
+  React.FC<Props> + アロー関数で Props 型推論を一貫させ、return 型を JSX に固定する。
+  ルーティングファイル (page.tsx / layout.tsx / index.tsx) のみ export default function を許可。
+files:
+  - '**/*.tsx'
+ignores:
+  - '**/page.tsx'
+  - '**/layout.tsx'
+  - '**/index.tsx'
+rule:
+  pattern: function $C($$$) { $$$ }
+  has:
+    any:
+      - kind: jsx_element
+      - kind: jsx_self_closing_element
+    stopBy: end
+constraints:
+  C: { regex: '^[A-Z]' }

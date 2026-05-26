@@ -1,0 +1,17 @@
+id: catch-narrow-error
+language: Tsx
+severity: error
+message: catch の引数は unknown。instanceof Error 等で narrow する
+note: |
+  JS は string や任意のオブジェクトも throw できるため、catch の引数は unknown 扱い。
+  instanceof Error で narrow するか、isError 等の型ガードヘルパーを使う。
+  ※ catch ブロック内で instanceof が一切呼ばれていない場合に警告する。
+rule:
+  kind: catch_clause
+  has:
+    field: parameter
+    pattern: $E
+  not:
+    has:
+      pattern: $_ instanceof $_
+      stopBy: end

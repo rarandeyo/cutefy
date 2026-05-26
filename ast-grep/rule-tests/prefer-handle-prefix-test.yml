@@ -1,0 +1,14 @@
+id: prefer-handle-prefix
+valid:
+  - const X = <button onClick={handleClick} />
+  - const X = <input onChange={() => doX()} />
+  - const X = <button onClick={props.onClick} />
+  - const X = <div className="x" />
+  - const X = <button onClick={onClick} />
+  - const X = <button onPress={onBack} />
+  - const X = <input onChange={setValue} />
+invalid:
+  - const X = <input onChange={changeHandler} />
+  - const X = <div onClick={fooFn} />
+  - const X = <button onClick={goNext} />
+  - const X = <Step onNext={applyPreset} />

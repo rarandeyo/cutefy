@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["typescript", "react", "unicorn", "nextjs", "import"],
+  "plugins": ["typescript", "react", "unicorn", "nextjs", "import", "node"],
   "categories": {
     "correctness": "error",
     "suspicious": "warn",
@@ -13,24 +13,49 @@
     "no-unused-vars": "error",
     "eqeqeq": "error",
 
-    "@typescript-eslint/no-explicit-any": "error",
-    "@typescript-eslint/no-non-null-assertion": "error",
-    "@typescript-eslint/no-unused-imports": "error",
-    "@typescript-eslint/consistent-type-imports": [
+    "typescript/consistent-type-definitions": ["error", "type"],
+    "typescript/no-explicit-any": "error",
+    "typescript/consistent-type-assertions": ["error", { "assertionStyle": "never" }],
+    "typescript/no-non-null-assertion": "error",
+    "typescript/array-type": ["error", { "default": "array" }],
+    "typescript/consistent-type-imports": "error",
+    "typescript/ban-ts-comment": [
       "error",
-      { "prefer": "type-imports" }
+      {
+        "ts-ignore": true,
+        "ts-expect-error": { "descriptionFormat": "^: .+$" },
+        "ts-nocheck": true,
+        "ts-check": false
+      }
     ],
+    "typescript/explicit-module-boundary-types": "warn",
     "typescript/no-misused-promises": "error",
+
+    "func-style": ["error", "expression"],
+    "prefer-arrow-callback": "error",
+
+    "node/no-process-env": "error",
 
     "react/react-in-jsx-scope": "off",
     "react/no-unstable-default-props": "warn",
-    "react-hooks/exhaustive-deps": "warn",
+    "react/exhaustive-deps": "error",
+    "react/rules-of-hooks": "error",
 
     "unicorn/no-array-for-each": "off",
     "unicorn/prefer-node-protocol": "error",
+    "unicorn/filename-case": [
+      "error",
+      {
+        "cases": {
+          "pascalCase": true,
+          "kebabCase": true
+        }
+      }
+    ],
 
     "import/no-default-export": "error",
     "import/no-cycle": "error",
+    "import/no-relative-parent-imports": "warn",
     "import/no-unassigned-import": [
       "error",
       { "allow": ["**/*.css", "server-only"] }
@@ -42,16 +67,34 @@
   },
   "overrides": [
     {
-      "files": ["src/app/**/page.tsx", "src/app/**/layout.tsx", "src/app/**/loading.tsx", "src/app/**/error.tsx", "src/app/**/not-found.tsx", "**/index.tsx"],
+      "files": [
+        "**/page.tsx",
+        "**/layout.tsx",
+        "**/index.tsx",
+        "**/route.ts",
+        "**/loading.tsx",
+        "**/error.tsx",
+        "**/not-found.tsx",
+        "**/template.tsx",
+        "**/default.tsx",
+        "**/global-error.tsx"
+      ],
       "rules": {
-        "import/no-default-export": "off"
+        "import/no-default-export": "off",
+        "unicorn/filename-case": "off"
       }
     },
     {
-      "files": ["*.config.ts", "*.config.js"],
+      "files": ["*.config.ts", "*.config.js", "*.config.mjs"],
       "rules": {
         "import/no-default-export": "off",
         "import/no-unassigned-import": "off"
+      }
+    },
+    {
+      "files": ["src/lib/env.ts", "src/lib/env.server.ts"],
+      "rules": {
+        "node/no-process-env": "off"
       }
     }
   ],

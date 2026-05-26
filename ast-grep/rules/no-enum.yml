@@ -1,0 +1,12 @@
+id: no-enum
+language: Tsx
+severity: error
+message: enum を使わない。リテラル union 型または `as const` オブジェクトで代替する
+note: |
+  enum はランタイムにオブジェクトが生成され、reverse mapping の予期しない挙動がある。
+  - 値を持つ場合: `as const` オブジェクト + `keyof typeof` でリテラル union を導出
+  - 値が不要な場合: リテラル union 型 (`type Status = 'open' | 'closed'`)
+rule:
+  any:
+    - pattern: enum $X { $$$ }
+    - pattern: const enum $X { $$$ }

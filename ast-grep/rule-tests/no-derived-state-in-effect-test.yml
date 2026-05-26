@@ -1,0 +1,20 @@
+id: no-derived-state-in-effect
+valid:
+  - |
+    useEffect(() => {
+      const ws = createConnection();
+      ws.connect();
+      return () => ws.disconnect();
+    }, []);
+  - |
+    useEffect(() => {
+      logVisit(id);
+      document.title = id;
+    }, [id]);
+  - useEffect(() => doInit(), [])
+invalid:
+  - |
+    useEffect(() => {
+      setFiltered(getFiltered(todos, filter));
+    }, [todos, filter]);
+  - useEffect(() => setComment(''), [userId])

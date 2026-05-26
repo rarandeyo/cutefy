@@ -11,5 +11,9 @@ pre-commit:
       glob: "*.{ts,tsx,js,jsx}"
       stage_fixed: true
 
+    - name: ast-grep
+      run: mise exec -- ast-grep scan {staged_files}
+      glob: "*.{ts,tsx,js,jsx}"
+
     - name: typecheck
       run: pnpm tsgo --noEmit

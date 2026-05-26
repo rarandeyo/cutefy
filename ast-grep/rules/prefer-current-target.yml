@@ -1,0 +1,18 @@
+id: prefer-current-target
+language: Tsx
+severity: warning
+message: addEventListener では e.target ではなく e.currentTarget を使う
+note: |
+  DOM の e.target は EventTarget で型が広い (バブリングで子要素も target になりうる)。
+  ハンドラを付けた要素自身を参照するなら e.currentTarget (要素の型を持つ)。
+  target を使う場合は instanceof で narrow する。
+  React の合成イベントはこのルールの対象外 (e.target が要素型に narrow される)。
+rule:
+  pattern: $E.target
+  inside:
+    any:
+      - pattern: $_.addEventListener($_, ($E) => $_)
+      - pattern: $_?.addEventListener($_, ($E) => $_)
+      - pattern: $_.addEventListener($_, function ($E) { $$$ })
+      - pattern: $_?.addEventListener($_, function ($E) { $$$ })
+    stopBy: end

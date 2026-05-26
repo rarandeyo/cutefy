@@ -1,0 +1,26 @@
+id: prefer-handle-prefix
+snapshots:
+  const X = <Step onNext={applyPreset} />:
+    labels:
+    - source: onNext={applyPreset}
+      style: primary
+      start: 16
+      end: 36
+  const X = <button onClick={goNext} />:
+    labels:
+    - source: onClick={goNext}
+      style: primary
+      start: 18
+      end: 34
+  const X = <div onClick={fooFn} />:
+    labels:
+    - source: onClick={fooFn}
+      style: primary
+      start: 15
+      end: 30
+  const X = <input onChange={changeHandler} />:
+    labels:
+    - source: onChange={changeHandler}
+      style: primary
+      start: 17
+      end: 41

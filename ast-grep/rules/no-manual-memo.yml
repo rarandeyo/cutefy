@@ -1,0 +1,11 @@
+id: no-manual-memo
+language: Tsx
+severity: warning
+message: React Compiler 有効プロジェクトでは手動メモ化を避ける
+note: |
+  React Compiler が必要箇所を自動メモ化するため、手動の useMemo / useCallback は不要。
+  Compiler 非対応プロジェクトでは Profiler 計測後の局所最適化に限り許容。
+rule:
+  any:
+    - pattern: useMemo($$$)
+    - pattern: useCallback($$$)

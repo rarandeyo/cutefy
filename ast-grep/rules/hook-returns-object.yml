@@ -1,0 +1,24 @@
+id: hook-returns-object
+language: Tsx
+severity: warning
+message: カスタムフックの返り値はオブジェクトにする
+note: |
+  返り値をオブジェクトにすると、利用側が必要なものだけ取り出せ、順序に依存しない。
+  - Bad:  `const [data, setData] = useUsers()` (順序依存、追加するとシグネチャ破壊)
+  - Good: `const { data, refetch } = useUsers()` (利用側で必要なだけ destructure)
+  tuple は useState のような汎用的な「値とセッター」ペアでない限り避ける。
+rule:
+  any:
+    - pattern: |
+        function $HOOK($$$) {
+          $$$
+          return [$$$];
+        }
+    - pattern: |
+        const $HOOK = ($$$) => {
+          $$$
+          return [$$$];
+        }
+    - pattern: const $HOOK = ($$$) => [$$$]
+constraints:
+  HOOK: { regex: '^use[A-Z]' }

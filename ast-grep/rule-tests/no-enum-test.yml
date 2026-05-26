@@ -1,0 +1,7 @@
+id: no-enum
+valid:
+  - "type Role = 'admin' | 'user'"
+  - "const ROLES = { admin: 'admin', user: 'user' } as const"
+invalid:
+  - enum Color { Red, Blue }
+  - const enum Status { Open = 1, Closed = 2 }

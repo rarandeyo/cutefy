@@ -1,0 +1,12 @@
+id: prefer-arrow-component
+valid:
+  - "const Foo = () => <div />"
+  - "export const Bar: React.FC = () => <div />"
+  - "function helperFn() { return 1 }"
+  - "function lowercase_thing() { return <div /> }"
+invalid:
+  - "function Button() { return <button /> }"
+  - |
+    function ProductItem() {
+      return <div>item</div>;
+    }

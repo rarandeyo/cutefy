@@ -1,0 +1,9 @@
+id: prefer-initial-prefix-state
+valid:
+  - useState(0)
+  - useState(props.initialName)
+  - useState(state.count)
+  - useState(name)
+invalid:
+  - useState(props.name)
+  - const [n, setN] = useState(props.age)

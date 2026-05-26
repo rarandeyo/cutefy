@@ -1,0 +1,18 @@
+id: readonly-props-array
+language: Tsx
+severity: warning
+message: Props の配列型は `readonly T[]` で受ける
+note: |
+  ミュータブルな配列を Props で受け取ると、子側で誤って push / 代入する事故が型を通る。
+  readonly を付けて破壊的メソッドを型レベルで遮断する。
+  対象: `type FooProps = { items: Item[] }` のような Props 型内の裸配列。
+rule:
+  pattern:
+    context: 'type X = { $NAME: $T[] }'
+    selector: property_signature
+  inside:
+    pattern: type $TYPE = { $$$ }
+    stopBy: end
+fix: '$NAME: readonly $T[]'
+constraints:
+  TYPE: { regex: 'Props$' }

@@ -1,0 +1,18 @@
+id: no-init-in-effect
+valid:
+  - |
+    useEffect(() => {
+      const ws = createConnection();
+      ws.connect();
+      return () => ws.disconnect();
+    }, []);
+  - |
+    useEffect(() => {
+      setCount(0);
+    }, [userId]);
+invalid:
+  - |
+    useEffect(() => {
+      initApp();
+      logEvent('mounted');
+    }, []);

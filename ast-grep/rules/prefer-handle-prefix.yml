@@ -1,0 +1,25 @@
+id: prefer-handle-prefix
+language: Tsx
+severity: warning
+message: JSX イベント prop に渡す関数名は handle* で始める
+note: |
+  Props 側は on*、実装側は handle* で統一すると、コンポーネントの境界が読みやすい。
+  対象: `<X onClick={someFunc} />` の someFunc が identifier で、handle* / on* / set* のいずれでも始まらない場合。
+  ※ 除外:
+    - インライン arrow `onClick={() => ...}`
+    - member expression `onClick={props.onClick}`
+    - 親 props や子コンポーネントへの素通し (`onClick={onClick}`)
+    - hook 由来の setter / action (`onChange={setValue}`)
+rule:
+  pattern:
+    context: <X $ATTR={$HANDLER} />
+    selector: jsx_attribute
+constraints:
+  ATTR: { regex: '^on[A-Z]' }
+  HANDLER:
+    kind: identifier
+    not:
+      any:
+        - { regex: '^handle[A-Z]' }
+        - { regex: '^on[A-Z]' }
+        - { regex: '^set[A-Z]' }

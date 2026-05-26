@@ -1,0 +1,9 @@
+id: no-raw-json-parse
+valid:
+  - schema.parse(input)
+  - JSON.stringify(x)
+  - const x = parse(input)
+invalid:
+  - JSON.parse(s)
+  - const data = JSON.parse(input)
+  - schema.parse(JSON.parse(s))

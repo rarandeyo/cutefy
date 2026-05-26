@@ -1,0 +1,11 @@
+id: no-raw-json-parse
+language: Tsx
+severity: error
+message: JSON.parse の戻り値は any。zod 等のスキーマで検証してドメイン型に持ち上げる
+note: |
+  JSON.parse の戻り値は標準では any で型チェックをすり抜ける。
+  - zod 等のスキーマで構造を検証する: `const data = userSchema.parse(JSON.parse(raw))`
+  - もしくは `ts-reset` を入れて JSON.parse の戻り値を unknown に矯正
+  - 検証済みの型で下流に流すことで「これ検証済み？」を呼び出し側に判断させない
+rule:
+  pattern: JSON.parse($$$)

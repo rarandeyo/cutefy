@@ -1,0 +1,9 @@
+id: no-manual-memo
+valid:
+  - const x = 1
+  - const fn = () => doX()
+  - useState(0)
+invalid:
+  - useMemo(() => 1, [])
+  - useCallback(() => {}, [])
+  - const memoized = useMemo(() => compute(a, b), [a, b])

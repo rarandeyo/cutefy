@@ -1,0 +1,20 @@
+id: catch-narrow-error
+valid:
+  - |
+    try { doX(); } catch (e) {
+      if (e instanceof Error) console.error(e.message);
+    }
+  - |
+    try { doY(); } catch (err) {
+      if (err instanceof TypeError) throw err;
+    }
+  - try { doZ(); } catch {}
+invalid:
+  - |
+    try { doX(); } catch (e) {
+      console.error(e);
+    }
+  - |
+    try { doY(); } catch (err) {
+      logger.log(err.message);
+    }

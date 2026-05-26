@@ -1,0 +1,13 @@
+id: prefer-initial-prefix-state
+language: Tsx
+severity: warning
+message: useState の初期値に props を使う場合は `initial` prefix を付ける
+note: |
+  prefix がないと props 変更時に state が更新されない問題に気づきにくい。
+  initial prefix で「一度きりの初期値」であることを命名で示す。
+  ※ props を destructure している (例: `({ name }) => useState(name)`) 場合は検知対象外。
+rule:
+  pattern: useState(props.$PROP)
+constraints:
+  PROP:
+    not: { regex: '^initial' }

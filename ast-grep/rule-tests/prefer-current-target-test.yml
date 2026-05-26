@@ -1,0 +1,22 @@
+id: prefer-current-target
+valid:
+  - |
+    btn.addEventListener('click', (e) => {
+      e.currentTarget;
+    });
+  - |
+    btn.addEventListener('click', (e) => {
+      other.target;
+    });
+  - const x = e.target
+  - const C = () => <input onChange={(e) => setValue(e.target.value)} />
+invalid:
+  - |
+    btn.addEventListener('click', (e) => {
+      const target = e.target;
+    });
+  - btn?.addEventListener('click', (e) => e.target)
+  - |
+    btn.addEventListener('click', function (e) {
+      console.log(e.target);
+    });

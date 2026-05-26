@@ -1,0 +1,15 @@
+id: no-derived-state-in-effect
+language: Tsx
+severity: error
+message: useEffect 内で setState だけしているのは派生値・データ変換・state リセットの兆候
+note: |
+  setState を Effect で行うと不要な再レンダーや 1 フレーム遅延が発生する。
+  - データ変換 / 派生値 → レンダー中に計算する (`const x = f(props)`)
+  - props 変更時の state リセット → 親側で `<X key={userId} />`
+rule:
+  any:
+    - pattern: useEffect(() => { $SET($$$) }, $$$)
+    - pattern: useEffect(() => $SET($$$), $$$)
+constraints:
+  SET:
+    regex: '^set[A-Z]'

@@ -1,0 +1,22 @@
+id: readonly-props-array
+valid:
+  - |
+    type FooProps = {
+      items: readonly Item[];
+      name: string;
+    };
+  - |
+    type FooOptions = {
+      items: Item[];
+    };
+  - "type Config = { name: string }"
+invalid:
+  - |
+    type FooProps = {
+      items: Item[];
+    };
+  - |
+    type BarProps = {
+      list: string[];
+      users: User[];
+    };

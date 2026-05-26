@@ -1,0 +1,14 @@
+id: no-init-in-effect
+language: Tsx
+severity: warning
+message: アプリ初期化を useEffect でやらない (Strict Mode で 2 回実行される)
+note: |
+  空依存配列 + cleanup なしの useEffect はアプリ初期化の兆候。
+  モジュールレベルで実行するか、Server Component / lazy init で代替する。
+  ※ cleanup return がある useEffect (subscription / listener pattern) は対象外。
+rule:
+  pattern: useEffect(() => { $$$ }, [])
+  not:
+    has:
+      kind: return_statement
+      stopBy: end
