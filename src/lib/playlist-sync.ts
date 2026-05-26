@@ -10,6 +10,7 @@ import {
   type DateRange,
   type TrackWithAddedAt,
 } from "./spotify";
+import { clientEnv } from "./env";
 import { refreshAccessToken } from "./spotify-token";
 
 const workerEnvSchema = z.object({
@@ -27,9 +28,8 @@ const SYNC_PERIODS = [
 type SyncPeriod = (typeof SYNC_PERIODS)[number];
 
 const buildPlaylistDescription = (): string => {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
   const date = new Date().toISOString().slice(0, 10);
-  return `Created by Cutefy (${appUrl}) · Updated at ${date}`;
+  return `Created by Cutefy (${clientEnv.NEXT_PUBLIC_APP_URL}) · Updated at ${date}`;
 };
 
 const buildDateRange = (period: SyncPeriod): DateRange => {

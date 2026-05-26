@@ -5,13 +5,13 @@ export const authClient = createAuthClient({
   baseURL: clientEnv.NEXT_PUBLIC_APP_URL,
 });
 
-export const signInWithSpotify = () =>
+export const signInWithSpotify = (): ReturnType<typeof authClient.signIn.social> =>
   authClient.signIn.social({
     provider: "spotify",
     callbackURL: "/app",
   });
 
-export const signOut = () =>
+export const signOut = (): ReturnType<typeof authClient.signOut> =>
   authClient.signOut({
     fetchOptions: {
       onSuccess: () => {

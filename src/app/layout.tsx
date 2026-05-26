@@ -22,7 +22,7 @@ type RootLayoutProps = Readonly<{
   children: React.ReactNode;
 }>;
 
-export default function RootLayout({ children }: RootLayoutProps) {
+export default function RootLayout({ children }: RootLayoutProps): React.JSX.Element {
   return (
     <html lang="ja" className={cn("font-sans", geist.variable)}>
       <body className={cn(outfit.variable, "antialiased")}>

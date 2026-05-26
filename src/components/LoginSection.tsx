@@ -5,7 +5,7 @@ import { Button } from "@heroui/react";
 import { Github, ListMusic } from "lucide-react";
 import Link from "next/link";
 import type React from "react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 const NOTES = ["♪", "♫", "♩", "♬", "♭", "♮"] as const;
 
@@ -35,13 +35,7 @@ type LoginSectionProps = {
 };
 
 export const LoginSection: React.FC<LoginSectionProps> = ({ isLoggedIn }) => {
-  const [mounted, setMounted] = useState(false);
-  const [particles, setParticles] = useState<Particle[]>([]);
-
-  useEffect(() => {
-    setParticles(generateParticles(14));
-    setMounted(true);
-  }, []);
+  const [particles] = useState<Particle[]>(() => generateParticles(14));
 
   return (
     <div className="relative flex min-h-screen flex-col items-center overflow-hidden">
@@ -75,28 +69,12 @@ export const LoginSection: React.FC<LoginSectionProps> = ({ isLoggedIn }) => {
       {/* Hero section */}
       <main className="relative z-10 flex flex-1 flex-col items-center justify-center gap-12 px-6 pt-16 pb-8">
         {/* Logo + Title */}
-        <div
-          className="flex flex-col items-center gap-5"
-          style={{
-            opacity: mounted ? 1 : 0,
-            transform: mounted ? "translateY(0)" : "translateY(24px)",
-            transition:
-              "opacity 0.8s cubic-bezier(0.16,1,0.3,1), transform 0.8s cubic-bezier(0.16,1,0.3,1)",
-          }}
-        >
+        <div className="flex animate-[fade-in_0.8s_cubic-bezier(0.16,1,0.3,1)_both] flex-col items-center gap-5">
           <div className="relative">
             <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-spotify-green to-emerald-400 shadow-[0_0_40px_rgba(29,185,84,0.3)]">
               <ListMusic className="h-10 w-10 text-black" strokeWidth={2.5} />
             </div>
-            <div
-              className="absolute -top-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-bold text-black shadow-lg"
-              style={{
-                opacity: mounted ? 1 : 0,
-                transform: mounted ? "scale(1)" : "scale(0)",
-                transition:
-                  "opacity 0.4s ease 0.6s, transform 0.4s cubic-bezier(0.34,1.56,0.64,1) 0.6s",
-              }}
-            >
+            <div className="absolute -top-1 -right-1 flex h-6 w-6 animate-[scale-in_0.4s_cubic-bezier(0.34,1.56,0.64,1)_0.6s_both] items-center justify-center rounded-full bg-white text-xs font-bold text-black shadow-lg">
               ♪
             </div>
           </div>
@@ -117,14 +95,7 @@ export const LoginSection: React.FC<LoginSectionProps> = ({ isLoggedIn }) => {
         </div>
 
         {/* CTA Button */}
-        <div
-          style={{
-            opacity: mounted ? 1 : 0,
-            transform: mounted ? "translateY(0)" : "translateY(16px)",
-            transition:
-              "opacity 0.7s cubic-bezier(0.16,1,0.3,1) 0.3s, transform 0.7s cubic-bezier(0.16,1,0.3,1) 0.3s",
-          }}
-        >
+        <div className="animate-[fade-in_0.7s_cubic-bezier(0.16,1,0.3,1)_0.3s_both]">
           {isLoggedIn ? (
             <Link
               href="/app"
@@ -147,13 +118,7 @@ export const LoginSection: React.FC<LoginSectionProps> = ({ isLoggedIn }) => {
       </main>
 
       {/* Footer */}
-      <footer
-        className="relative z-10 pb-8"
-        style={{
-          opacity: mounted ? 1 : 0,
-          transition: "opacity 0.6s ease 0.8s",
-        }}
-      >
+      <footer className="relative z-10 animate-[fade-in_0.6s_ease_0.8s_both] pb-8">
         <a
           href="https://github.com/rarandeyo/create-spotify-playlist"
           target="_blank"

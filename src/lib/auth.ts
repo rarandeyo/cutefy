@@ -2,13 +2,11 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { betterAuth } from "better-auth";
 import { env } from "./env.server";
 
-// Called per-request: getCloudflareContext() is only available at request time, not during build
-export const getAuth = async () => {
-  const { env: cfEnv } = await getCloudflareContext({ async: true });
-  return betterAuth({
+const buildAuth = (db: D1Database) =>
+  betterAuth({
     baseURL: env.BETTER_AUTH_URL,
     secret: env.BETTER_AUTH_SECRET,
-    database: cfEnv.DB,
+    database: db,
     session: {
       cookieCache: {
         enabled: true,
@@ -29,4 +27,9 @@ export const getAuth = async () => {
       },
     },
   });
+
+// Called per-request: getCloudflareContext() is only available at request time, not during build
+export const getAuth = async (): Promise<ReturnType<typeof buildAuth>> => {
+  const { env: cfEnv } = await getCloudflareContext({ async: true });
+  return buildAuth(cfEnv.DB);
 };

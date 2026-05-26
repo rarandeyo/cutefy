@@ -16,7 +16,7 @@ const syncSettingsBodySchema = z.object({
   enabled: z.boolean(),
 });
 
-export async function GET(request: Request) {
+export const GET = async (request: Request): Promise<Response> => {
   let session: Awaited<ReturnType<typeof requireSession>>;
   try {
     session = await requireSession(request);
@@ -30,9 +30,9 @@ export async function GET(request: Request) {
     .first<{ enabled: number }>();
 
   return Response.json({ enabled: row?.enabled === 1 });
-}
+};
 
-export async function POST(request: Request) {
+export const POST = async (request: Request): Promise<Response> => {
   let session: Awaited<ReturnType<typeof requireSession>>;
   try {
     session = await requireSession(request);
@@ -68,4 +68,4 @@ export async function POST(request: Request) {
   }
 
   return Response.json({ enabled });
-}
+};

@@ -46,15 +46,23 @@ const parseCache = (raw: string): TrackWithAddedAt[] | null => {
   }
 };
 
-export const trackCache = {
-  subscribe: (listener: () => void) => {
+type TrackCache = {
+  subscribe: (listener: () => void) => () => void;
+  getSnapshot: () => TrackWithAddedAt[] | null;
+  getServerSnapshot: () => null;
+  set: (tracks: TrackWithAddedAt[]) => void;
+  clear: () => void;
+};
+
+export const trackCache: TrackCache = {
+  subscribe: (listener) => {
     listeners = [...listeners, listener];
     return () => {
       listeners = listeners.filter((l) => l !== listener);
     };
   },
 
-  getSnapshot: (): TrackWithAddedAt[] | null => {
+  getSnapshot: () => {
     const raw = localStorage.getItem(CACHE_KEY);
     if (!raw) return null;
     if (raw === cachedRaw) return cachedResult;
@@ -63,9 +71,9 @@ export const trackCache = {
     return cachedResult;
   },
 
-  getServerSnapshot: (): null => null,
+  getServerSnapshot: () => null,
 
-  set: (tracks: TrackWithAddedAt[]) => {
+  set: (tracks) => {
     const data = { tracks, cachedAt: Date.now() };
     localStorage.setItem(CACHE_KEY, JSON.stringify(data));
     emitChange();
