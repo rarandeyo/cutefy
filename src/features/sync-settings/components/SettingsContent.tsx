@@ -6,10 +6,13 @@ import { ArrowLeft, Loader2, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useSyncSettings } from "@/features/sync-settings/hooks/use-sync-settings";
 
-export const SettingsContent: React.FC = () => {
-  const { state, isToggling, handleToggle } = useSyncSettings();
+type SettingsContentProps = {
+  initialEnabled: boolean;
+};
 
-  const isEnabled = state.status !== "loading" && state.enabled;
+export const SettingsContent: React.FC<SettingsContentProps> = ({ initialEnabled }) => {
+  const { state, handleToggle } = useSyncSettings(initialEnabled);
+  const isSyncing = state.status === "syncing";
 
   return (
     <div className="mx-auto flex h-screen max-w-2xl flex-col p-4 md:p-8">
@@ -36,18 +39,14 @@ export const SettingsContent: React.FC = () => {
                 お気に入りの曲から 1ヶ月 / 6ヶ月 / 1年 のプレイリストを毎日自動更新します
               </p>
             </div>
-            {state.status === "loading" ? (
-              <Loader2 className="h-5 w-5 animate-spin text-foreground/40" />
-            ) : (
-              <Switch isSelected={isEnabled} isDisabled={isToggling} onChange={handleToggle}>
-                <Switch.Control>
-                  <Switch.Thumb />
-                </Switch.Control>
-              </Switch>
-            )}
+            <Switch isSelected={state.enabled} isDisabled={isSyncing} onChange={handleToggle}>
+              <Switch.Control>
+                <Switch.Thumb />
+              </Switch.Control>
+            </Switch>
           </div>
 
-          {isToggling && (
+          {isSyncing && (
             <div className="mt-3 flex items-center gap-2 text-sm text-foreground/60">
               <Loader2 className="h-4 w-4 animate-spin" />
               <span>プレイリストを同期中...</span>
