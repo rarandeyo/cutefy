@@ -5,38 +5,14 @@ import { Button } from "@heroui/react";
 import { Github, ListMusic } from "lucide-react";
 import Link from "next/link";
 import type React from "react";
-import { useState } from "react";
-
-const NOTES = ["♪", "♫", "♩", "♬", "♭", "♮"] as const;
-
-type Particle = {
-  id: number;
-  note: string;
-  x: number;
-  delay: number;
-  duration: number;
-  size: number;
-  opacity: number;
-};
-
-const generateParticles = (count: number): Particle[] =>
-  Array.from({ length: count }, (_, i) => ({
-    id: i,
-    note: NOTES[i % NOTES.length] ?? "♪",
-    x: Math.random() * 100,
-    delay: Math.random() * 8,
-    duration: 10 + Math.random() * 12,
-    size: 14 + Math.random() * 18,
-    opacity: 0.06 + Math.random() * 0.1,
-  }));
+import type { Particle } from "@/features/auth/lib/particles";
 
 type LoginSectionProps = {
   isLoggedIn: boolean;
+  particles: readonly Particle[];
 };
 
-export const LoginSection: React.FC<LoginSectionProps> = ({ isLoggedIn }) => {
-  const [particles] = useState<Particle[]>(() => generateParticles(14));
-
+export const LoginSection: React.FC<LoginSectionProps> = ({ isLoggedIn, particles }) => {
   return (
     <div className="relative flex min-h-screen flex-col items-center overflow-hidden">
       {/* Floating music note particles */}
