@@ -1,6 +1,5 @@
 "use client";
 
-import { useRef } from "react";
 import { Button } from "@heroui/react";
 import { ChevronLeft, ChevronRight, ListMusic, Music, Sparkles } from "lucide-react";
 import { CreatePlaylistStep } from "./CreatePlaylistStep";
@@ -11,6 +10,7 @@ import { useDateFilter } from "@/features/playlist-wizard/hooks/use-date-filter"
 import { usePlaylistCreation } from "@/features/playlist-wizard/hooks/use-playlist-creation";
 import { useSavedTracks } from "@/features/playlist-wizard/hooks/use-saved-tracks";
 import { useStepNavigation } from "@/features/playlist-wizard/hooks/use-step-navigation";
+import type { TrackWithAddedAt } from "@/shared/lib/spotify";
 
 const STEPS = [
   { label: "曲を取得", icon: Music },
@@ -18,12 +18,13 @@ const STEPS = [
   { label: "作成", icon: Sparkles },
 ] as const satisfies readonly Step[];
 
-export const WizardSteps: React.FC = () => {
-  const handleNextRef = useRef<() => void>(undefined);
+type WizardStepsProps = {
+  initialTracks: readonly TrackWithAddedAt[];
+};
 
-  const { state: tracksState, handleLoadTracks } = useSavedTracks(() => handleNextRef.current?.());
+export const WizardSteps: React.FC<WizardStepsProps> = ({ initialTracks }) => {
+  const { state: tracksState, handleLoadTracks } = useSavedTracks(initialTracks);
   const { currentStep, setCurrentStep, handleBack, handleNext } = useStepNavigation();
-  handleNextRef.current = handleNext;
 
   const {
     dateRange,

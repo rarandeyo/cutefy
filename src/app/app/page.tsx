@@ -1,20 +1,24 @@
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import type React from "react";
-import { getAuth } from "@/shared/lib/auth/server";
-
-export const dynamic = "force-dynamic";
+import { fetchAllSavedTracks, type TrackWithAddedAt } from "@/shared/lib/spotify";
+import { getSpotifyClientForCurrentUser, UnauthorizedError } from "@/shared/lib/spotify/server";
 import { MainContent } from "@/features/playlist-wizard/components/MainContent";
 
-export default async function Page(): Promise<React.JSX.Element> {
-  const auth = await getAuth();
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+export const dynamic = "force-dynamic";
 
-  if (!session) {
-    redirect("/");
+const loadInitialTracks = async (): Promise<readonly TrackWithAddedAt[]> => {
+  try {
+    const { sdk } = await getSpotifyClientForCurrentUser();
+    return await fetchAllSavedTracks(sdk);
+  } catch (err) {
+    if (err instanceof UnauthorizedError) {
+      redirect("/");
+    }
+    throw err;
   }
+};
 
-  return <MainContent />;
+export default async function Page(): Promise<React.JSX.Element> {
+  const initialTracks = await loadInitialTracks();
+  return <MainContent initialTracks={initialTracks} />;
 }
