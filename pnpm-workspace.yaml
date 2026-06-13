@@ -1,5 +1,5 @@
 onlyBuiltDependencies:
-  - "@rarandeyo/spotify-web-api-ts-sdk"
+  - "@rarandeyo/spotify-web-api-ts-sdk@1.3.0"
   - better-sqlite3
   - esbuild
   - lefthook
