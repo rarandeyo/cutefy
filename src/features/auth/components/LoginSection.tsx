@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { signInWithSpotify } from "@/shared/lib/auth/client";
 import { Button } from "@heroui/react";
 import { Github, ListMusic } from "lucide-react";
@@ -13,6 +14,7 @@ type LoginSectionProps = {
 };
 
 export const LoginSection: React.FC<LoginSectionProps> = ({ isLoggedIn, particles }) => {
+  const [loginError, setLoginError] = useState<string | null>(null);
   return (
     <div className="relative flex min-h-screen flex-col items-center overflow-hidden">
       {/* Floating music note particles */}
@@ -81,7 +83,10 @@ export const LoginSection: React.FC<LoginSectionProps> = ({ isLoggedIn, particle
             </Link>
           ) : (
             <Button
-              onPress={() => signInWithSpotify().catch(console.error)}
+              onPress={() => {
+                setLoginError(null);
+                signInWithSpotify().catch(() => setLoginError("ログインに失敗しました"));
+              }}
               className="group relative rounded-full bg-spotify-green px-10 py-6 text-base font-bold text-black shadow-[0_0_30px_rgba(29,185,84,0.25)] transition-all duration-300 hover:bg-spotify-green-hover hover:shadow-[0_0_50px_rgba(29,185,84,0.4)] hover:scale-[1.03]"
             >
               <svg viewBox="0 0 24 24" className="mr-2 h-5 w-5 fill-current" aria-hidden="true">
@@ -90,6 +95,7 @@ export const LoginSection: React.FC<LoginSectionProps> = ({ isLoggedIn, particle
               Spotifyでログイン
             </Button>
           )}
+          {loginError && <p className="mt-2 text-sm text-danger">{loginError}</p>}
         </div>
       </main>
 

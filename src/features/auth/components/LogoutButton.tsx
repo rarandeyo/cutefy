@@ -5,16 +5,18 @@ import { LogOut } from "lucide-react";
 import { signOut } from "@/shared/lib/auth/client";
 import { trackCache } from "@/features/playlist-wizard/lib/track-cache";
 
+const handleLogout = (): void => {
+  trackCache.clear();
+  signOut().catch(() => window.alert("ログアウトに失敗しました"));
+};
+
 export const LogoutButton: React.FC = () => (
   <Button
     isIconOnly
     variant="ghost"
     size="sm"
     aria-label="ログアウト"
-    onPress={() => {
-      trackCache.clear();
-      signOut().catch(console.error);
-    }}
+    onPress={handleLogout}
     className="bg-white/10 text-foreground hover:bg-white/20"
   >
     <LogOut className="h-4 w-4" />

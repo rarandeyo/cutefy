@@ -24,6 +24,12 @@ const formatCalendarDate = (d: CalendarDate): string =>
 const generateDefaultName = (start: CalendarDate, end: CalendarDate): string =>
   `お気に入り ${formatCalendarDate(start)} - ${formatCalendarDate(end)}`;
 
+const USER_ERROR_MESSAGES = {
+  unauthorized: "セッションが切れました。再ログインしてください",
+  invalid_input: "入力が不正です",
+  unknown: "プレイリストの作成に失敗しました",
+} as const satisfies Record<string, string>;
+
 export const usePlaylistCreation = (
   filteredTracks: readonly TrackWithAddedAt[],
   dateRange: { startDate: CalendarDate; endDate: CalendarDate },
@@ -46,15 +52,19 @@ export const usePlaylistCreation = (
 
     setPlaylistState({ status: "creating" });
     startCreatingTransition(async () => {
-      const result = await createPlaylist({
-        name: playlistName.trim(),
-        trackUris: filteredTracks.map((t) => t.uri),
-      });
-      if (!result.ok) {
-        setPlaylistState({ status: "error", message: result.message });
-        return;
+      try {
+        const result = await createPlaylist({
+          name: playlistName.trim(),
+          trackUris: filteredTracks.map((t) => t.uri),
+        });
+        if (!result.ok) {
+          setPlaylistState({ status: "error", message: USER_ERROR_MESSAGES[result.reason] });
+          return;
+        }
+        setPlaylistState({ status: "success", playlistUrl: result.playlistUrl });
+      } catch {
+        setPlaylistState({ status: "error", message: "通信エラーが発生しました" });
       }
-      setPlaylistState({ status: "success", playlistUrl: result.playlistUrl });
     });
   };
 

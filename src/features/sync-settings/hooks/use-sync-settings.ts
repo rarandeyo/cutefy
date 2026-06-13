@@ -13,6 +13,17 @@ type SyncSettings = {
   handleToggle: (enabled: boolean) => void;
 };
 
+const SYNC_USER_MESSAGES = {
+  partial: "一部のプレイリストの同期に失敗しました",
+  failed: "プレイリストの同期に失敗しました",
+} as const satisfies Record<string, string>;
+
+const ACTION_USER_MESSAGES = {
+  unauthorized: "セッションが切れました。再ログインしてください",
+  invalid_input: "入力が不正です",
+  unknown: "エラーが発生しました",
+} as const satisfies Record<string, string>;
+
 export const useSyncSettings = (initialEnabled: boolean): SyncSettings => {
   const [state, setState] = useState<SyncSettingsState>({
     status: "ready",
@@ -23,16 +34,28 @@ export const useSyncSettings = (initialEnabled: boolean): SyncSettings => {
   const handleToggle = (enabled: boolean): void => {
     setState({ status: "syncing", enabled });
     startTransition(async () => {
-      const result = await toggleSyncSettings({ enabled });
-      if (!result.ok) {
-        setState({ status: "error", enabled: !enabled, message: result.message });
-        return;
+      try {
+        const result = await toggleSyncSettings({ enabled });
+        if (!result.ok) {
+          setState({
+            status: "error",
+            enabled: !enabled,
+            message: ACTION_USER_MESSAGES[result.reason],
+          });
+          return;
+        }
+        if (result.enabled && result.sync.status !== "success") {
+          setState({
+            status: "error",
+            enabled: true,
+            message: SYNC_USER_MESSAGES[result.sync.status],
+          });
+          return;
+        }
+        setState({ status: "ready", enabled: result.enabled });
+      } catch {
+        setState({ status: "error", enabled: !enabled, message: "通信エラーが発生しました" });
       }
-      if (result.syncError) {
-        setState({ status: "error", enabled: result.enabled, message: result.syncError });
-        return;
-      }
-      setState({ status: "ready", enabled: result.enabled });
     });
   };
 

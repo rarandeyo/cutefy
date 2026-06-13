@@ -41,7 +41,8 @@ const parseCache = (raw: string): readonly TrackWithAddedAt[] | null => {
     }
     if (Date.now() - parsed.data.cachedAt > CACHE_TTL) return null;
     return parsed.data.tracks;
-  } catch {
+  } catch (err) {
+    console.warn("[track-cache] Failed to parse cache", err);
     localStorage.removeItem(CACHE_KEY);
     return null;
   }

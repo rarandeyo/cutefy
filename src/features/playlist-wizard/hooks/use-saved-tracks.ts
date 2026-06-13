@@ -8,8 +8,13 @@ import type { SavedTracksState } from "@/features/playlist-wizard/types";
 
 type SavedTracks = {
   state: SavedTracksState;
-  handleLoadTracks: () => Promise<void>;
+  handleLoadTracks: () => void;
 };
+
+const USER_ERROR_MESSAGES = {
+  unauthorized: "セッションが切れました。再ログインしてください",
+  unknown: "曲の取得に失敗しました",
+} as const satisfies Record<string, string>;
 
 export const useSavedTracks = (initialTracks: readonly TrackWithAddedAt[]): SavedTracks => {
   const cachedTracks = useSyncExternalStore(
@@ -21,20 +26,21 @@ export const useSavedTracks = (initialTracks: readonly TrackWithAddedAt[]): Save
   const [isLoadingTracks, startLoadingTransition] = useTransition();
   const [errorState, setErrorState] = useState<string | null>(null);
 
-  const handleLoadTracks = (): Promise<void> =>
-    new Promise((resolve) => {
-      startLoadingTransition(async () => {
+  const handleLoadTracks = (): void => {
+    startLoadingTransition(async () => {
+      try {
         setErrorState(null);
         const result = await loadSavedTracks();
         if (!result.ok) {
-          setErrorState(result.message);
-          resolve();
+          setErrorState(USER_ERROR_MESSAGES[result.reason]);
           return;
         }
         trackCache.set(result.tracks);
-        resolve();
-      });
+      } catch {
+        setErrorState("通信エラーが発生しました");
+      }
     });
+  };
 
   const state: SavedTracksState = errorState
     ? { status: "error", tracks, message: errorState }

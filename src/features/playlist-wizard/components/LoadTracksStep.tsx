@@ -5,7 +5,7 @@ import type { SavedTracksState } from "@/features/playlist-wizard/types";
 
 type LoadTracksStepProps = {
   state: SavedTracksState;
-  onLoadTracks: () => Promise<void>;
+  onLoadTracks: () => void;
   onNext: () => void;
 };
 
@@ -31,9 +31,7 @@ export const LoadTracksStep: React.FC<LoadTracksStepProps> = ({ state, onLoadTra
         ) : (
           (trackCount > 0 || error) && (
             <Button
-              onPress={() => {
-                void onLoadTracks();
-              }}
+              onPress={onLoadTracks}
               className="flex items-center gap-2 rounded-full bg-white/10 px-8 py-3 font-semibold text-foreground transition-colors hover:bg-white/20"
             >
               <Music className="h-5 w-5" />
