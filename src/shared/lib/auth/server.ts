@@ -1,12 +1,15 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import { betterAuth } from "better-auth";
+import { drizzle } from "drizzle-orm/d1";
 import { env } from "@/shared/lib/env/server";
+import * as schema from "@/shared/lib/db/schema";
 
 const buildAuth = (db: D1Database) =>
   betterAuth({
     baseURL: env.BETTER_AUTH_URL,
     secret: env.BETTER_AUTH_SECRET,
-    database: db,
+    database: drizzleAdapter(drizzle(db), { provider: "sqlite", schema }),
     session: {
       cookieCache: {
         enabled: true,

@@ -4,9 +4,10 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { headers } from "next/headers";
 import { z } from "zod";
 import { getAuth } from "@/shared/lib/auth/server";
+import { createDb } from "@/shared/lib/db";
 import { createUserId, type UserId } from "@/shared/types/brands";
 import { errorMessage } from "@/shared/lib/error";
-import { updatePlaylists } from "@/features/playlist-sync/lib/playlist-sync";
+import { updatePlaylists, type SyncResult } from "@/features/playlist-sync/lib/playlist-sync";
 import { saveSyncSettingsEnabled } from "@/features/sync-settings/lib/sync-settings-repo";
 
 const inputSchema = z.object({ enabled: z.boolean() });
@@ -14,7 +15,8 @@ const inputSchema = z.object({ enabled: z.boolean() });
 export type ToggleSyncSettingsInput = z.input<typeof inputSchema>;
 
 export type ToggleSyncSettingsResult =
-  | { ok: true; enabled: boolean; syncError?: string }
+  | { ok: true; enabled: true; sync: SyncResult }
+  | { ok: true; enabled: false }
   | { ok: false; reason: "unauthorized" | "invalid_input" | "unknown"; message: string };
 
 const getCurrentUserId = async (): Promise<UserId | null> => {
@@ -37,8 +39,9 @@ export const toggleSyncSettings = async (
   }
 
   const { env } = await getCloudflareContext({ async: true });
+  const db = createDb(env.DB);
   try {
-    await saveSyncSettingsEnabled(env.DB, userId, parsed.data.enabled);
+    await saveSyncSettingsEnabled(db, userId, parsed.data.enabled);
   } catch (err) {
     return {
       ok: false,
@@ -47,17 +50,18 @@ export const toggleSyncSettings = async (
     };
   }
 
-  if (parsed.data.enabled) {
-    try {
-      await updatePlaylists(env, { skipEnabledCheck: true, userId });
-    } catch (err) {
-      return {
-        ok: true,
-        enabled: true,
-        syncError: errorMessage(err, "Initial sync failed"),
-      };
-    }
+  if (!parsed.data.enabled) {
+    return { ok: true, enabled: false };
   }
 
-  return { ok: true, enabled: parsed.data.enabled };
+  try {
+    const sync = await updatePlaylists(env, { skipEnabledCheck: true, userId });
+    return { ok: true, enabled: true, sync };
+  } catch (err) {
+    return {
+      ok: true,
+      enabled: true,
+      sync: { status: "failed", message: errorMessage(err, "同期に失敗しました") },
+    };
+  }
 };

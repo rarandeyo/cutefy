@@ -1,22 +1,29 @@
 import "server-only";
 
+import { eq } from "drizzle-orm";
+import type { Db } from "@/shared/lib/db";
+import { syncSettings } from "@/shared/lib/db/schema";
 import type { UserId } from "@/shared/types/brands";
 
-export const getSyncSettingsEnabled = async (db: D1Database, userId: UserId): Promise<boolean> => {
+export const getSyncSettingsEnabled = async (db: Db, userId: UserId): Promise<boolean> => {
   const row = await db
-    .prepare("SELECT enabled FROM sync_settings WHERE user_id = ?")
-    .bind(userId)
-    .first<{ enabled: number }>();
+    .select({ enabled: syncSettings.enabled })
+    .from(syncSettings)
+    .where(eq(syncSettings.userId, userId))
+    .get();
   return row?.enabled === 1;
 };
 
 export const saveSyncSettingsEnabled = async (
-  db: D1Database,
+  db: Db,
   userId: UserId,
   enabled: boolean,
 ): Promise<void> => {
   await db
-    .prepare("INSERT OR REPLACE INTO sync_settings (user_id, enabled, updated_at) VALUES (?, ?, ?)")
-    .bind(userId, enabled ? 1 : 0, Date.now())
-    .run();
+    .insert(syncSettings)
+    .values({ userId, enabled: enabled ? 1 : 0, updatedAt: Date.now() })
+    .onConflictDoUpdate({
+      target: syncSettings.userId,
+      set: { enabled: enabled ? 1 : 0, updatedAt: Date.now() },
+    });
 };

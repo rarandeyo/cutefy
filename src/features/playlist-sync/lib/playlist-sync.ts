@@ -1,3 +1,4 @@
+import { and, eq } from "drizzle-orm";
 import type { SpotifyApi } from "@spotify/web-api-ts-sdk";
 import {
   createPlaylistFromTracks,
@@ -11,6 +12,8 @@ import {
 } from "@/shared/lib/spotify";
 import { clientEnv } from "@/shared/lib/env/client";
 import { env as serverEnv } from "@/shared/lib/env/server";
+import { createDb, type Db } from "@/shared/lib/db";
+import { account, playlistSync, syncSettings } from "@/shared/lib/db/schema";
 import { refreshAccessToken } from "@/shared/lib/spotify/token";
 import {
   createPlaylistId,
@@ -18,7 +21,16 @@ import {
   type PlaylistId,
   type UserId,
 } from "@/shared/types/brands";
-import { errorMessage } from "@/shared/lib/error";
+import { errorMessage, isError } from "@/shared/lib/error";
+
+// Spotify SDK throws plain Error with "Unrecognised response code: 404 ..." for deleted playlists
+const isSpotifyNotFound = (err: unknown): boolean =>
+  isError(err) && err.message.includes("response code: 404");
+
+export type SyncResult =
+  | { status: "success"; syncedCount: number }
+  | { status: "partial"; syncedCount: number; message: string }
+  | { status: "failed"; message: string };
 
 type SyncPeriod = {
   key: string;
@@ -52,11 +64,12 @@ const buildDateRange = (period: SyncPeriod): DateRange => {
   return { startDate, endDate: now };
 };
 
-const getRefreshToken = async (db: D1Database, userId: UserId): Promise<string> => {
+const getRefreshToken = async (db: Db, userId: UserId): Promise<string> => {
   const row = await db
-    .prepare("SELECT refreshToken FROM account WHERE providerId = 'spotify' AND userId = ?")
-    .bind(userId)
-    .first<{ refreshToken: string }>();
+    .select({ refreshToken: account.refreshToken })
+    .from(account)
+    .where(and(eq(account.providerId, "spotify"), eq(account.userId, userId)))
+    .get();
 
   if (!row?.refreshToken) {
     throw new Error("No Spotify refresh token found in database");
@@ -66,35 +79,37 @@ const getRefreshToken = async (db: D1Database, userId: UserId): Promise<string> 
 };
 
 const getPlaylistId = async (
-  db: D1Database,
+  db: Db,
   userId: UserId,
   period: string,
 ): Promise<PlaylistId | null> => {
   const row = await db
-    .prepare("SELECT playlist_id FROM playlist_sync WHERE user_id = ? AND period = ?")
-    .bind(userId, period)
-    .first<{ playlist_id: string }>();
+    .select({ playlistId: playlistSync.playlistId })
+    .from(playlistSync)
+    .where(and(eq(playlistSync.userId, userId), eq(playlistSync.period, period)))
+    .get();
 
-  return row?.playlist_id ? createPlaylistId(row.playlist_id) : null;
+  return row?.playlistId ? createPlaylistId(row.playlistId) : null;
 };
 
 const savePlaylistId = async (
-  db: D1Database,
+  db: Db,
   userId: UserId,
   period: string,
   playlistId: PlaylistId,
 ): Promise<void> => {
   await db
-    .prepare(
-      "INSERT OR REPLACE INTO playlist_sync (user_id, period, playlist_id, updated_at) VALUES (?, ?, ?, ?)",
-    )
-    .bind(userId, period, playlistId, Date.now())
-    .run();
+    .insert(playlistSync)
+    .values({ userId, period, playlistId, updatedAt: Date.now() })
+    .onConflictDoUpdate({
+      target: [playlistSync.userId, playlistSync.period],
+      set: { playlistId, updatedAt: Date.now() },
+    });
 };
 
 const syncPeriod = async (
   sdk: SpotifyApi,
-  db: D1Database,
+  db: Db,
   userId: UserId,
   period: SyncPeriod,
   allTracks: readonly TrackWithAddedAt[],
@@ -119,8 +134,8 @@ const syncPeriod = async (
       await savePlaylistId(db, userId, period.key, existingPlaylistId);
       console.log(`[playlist-sync] Updated playlist ${period.key}: ${trackUris.length} tracks`);
       return;
-    } catch {
-      // Playlist was deleted on Spotify, recreate it
+    } catch (err) {
+      if (!isSpotifyNotFound(err)) throw err;
       console.log(`[playlist-sync] Playlist ${period.key} not found, recreating`);
     }
   }
@@ -138,36 +153,36 @@ const syncPeriod = async (
   );
 };
 
-const getEnabledUserIds = async (db: D1Database): Promise<readonly UserId[]> => {
-  const { results } = await db
-    .prepare("SELECT user_id FROM sync_settings WHERE enabled = 1")
-    .all<{ user_id: string }>();
+const getEnabledUserIds = async (db: Db): Promise<readonly UserId[]> => {
+  const rows = await db
+    .select({ userId: syncSettings.userId })
+    .from(syncSettings)
+    .where(eq(syncSettings.enabled, 1))
+    .all();
 
-  return results.map((row) => createUserId(row.user_id));
+  return rows.map((row) => createUserId(row.userId));
 };
 
 const syncUserPlaylists = async (
-  env: CloudflareEnv,
+  db: Db,
   clientId: string,
   clientSecret: string,
   userId: UserId,
-): Promise<void> => {
+): Promise<SyncResult> => {
   console.log(`[playlist-sync] Syncing playlists for user ${userId}`);
 
-  const refreshToken = await getRefreshToken(env.DB, userId);
+  const refreshToken = await getRefreshToken(db, userId);
   const { accessToken, newRefreshToken } = await refreshAccessToken(
     refreshToken,
     clientId,
     clientSecret,
   );
 
-  // Update refresh token in DB if Spotify rotated it
   if (newRefreshToken) {
-    await env.DB.prepare(
-      "UPDATE account SET refreshToken = ? WHERE providerId = 'spotify' AND userId = ?",
-    )
-      .bind(newRefreshToken, userId)
-      .run();
+    await db
+      .update(account)
+      .set({ refreshToken: newRefreshToken })
+      .where(and(eq(account.providerId, "spotify"), eq(account.userId, userId)));
     console.log(`[playlist-sync] Refresh token rotated and updated for user ${userId}`);
   }
 
@@ -175,48 +190,80 @@ const syncUserPlaylists = async (
   const allTracks = await fetchAllSavedTracks(sdk);
   console.log(`[playlist-sync] Fetched ${allTracks.length} saved tracks for user ${userId}`);
 
+  const errors: string[] = [];
+  let syncedCount = 0;
+
   for (const period of SYNC_PERIODS) {
     try {
-      await syncPeriod(sdk, env.DB, userId, period, allTracks);
+      await syncPeriod(sdk, db, userId, period, allTracks);
+      syncedCount++;
     } catch (err) {
+      const msg = errorMessage(err, "unknown error");
+      errors.push(`${period.key}: ${msg}`);
       console.error(
-        `[playlist-sync] Failed to sync period ${period.key} for user ${userId}: ${errorMessage(err, "unknown error")}`,
+        `[playlist-sync] Failed to sync period ${period.key} for user ${userId}: ${msg}`,
       );
     }
   }
+
+  if (errors.length === 0) {
+    return { status: "success", syncedCount };
+  }
+  if (syncedCount > 0) {
+    return { status: "partial", syncedCount, message: errors.join("; ") };
+  }
+  return { status: "failed", message: errors.join("; ") };
 };
 
 export const updatePlaylists = async (
   env: CloudflareEnv,
   { skipEnabledCheck = false, userId }: { skipEnabledCheck?: boolean; userId?: UserId } = {},
-): Promise<void> => {
+): Promise<SyncResult> => {
+  const db = createDb(env.DB);
   const clientId = serverEnv.SPOTIFY_CLIENT_ID;
   const clientSecret = serverEnv.SPOTIFY_CLIENT_SECRET;
 
-  // When called from the API with a specific userId, sync only that user
   if (skipEnabledCheck && userId) {
-    await syncUserPlaylists(env, clientId, clientSecret, userId);
-    return;
+    return syncUserPlaylists(db, clientId, clientSecret, userId);
   }
 
-  // Cron path: sync all enabled users
-  const enabledUserIds = await getEnabledUserIds(env.DB);
+  const enabledUserIds = await getEnabledUserIds(db);
   if (enabledUserIds.length === 0) {
     console.log("[playlist-sync] No users with sync enabled, skipping");
-    return;
+    return { status: "success", syncedCount: 0 };
   }
 
   console.log(`[playlist-sync] Starting playlist sync for ${enabledUserIds.length} user(s)`);
 
+  let syncedUsers = 0;
+  let failedUsers = 0;
   for (const uid of enabledUserIds) {
     try {
-      await syncUserPlaylists(env, clientId, clientSecret, uid);
+      const result = await syncUserPlaylists(db, clientId, clientSecret, uid);
+      if (result.status === "failed") {
+        failedUsers++;
+      } else {
+        syncedUsers++;
+      }
     } catch (err) {
+      failedUsers++;
       console.error(
         `[playlist-sync] Failed to sync user ${uid}: ${errorMessage(err, "unknown error")}`,
       );
     }
   }
 
-  console.log("[playlist-sync] Playlist sync complete");
+  console.log(`[playlist-sync] Complete: ${syncedUsers} succeeded, ${failedUsers} failed`);
+
+  if (failedUsers === 0) {
+    return { status: "success", syncedCount: syncedUsers };
+  }
+  if (syncedUsers > 0) {
+    return {
+      status: "partial",
+      syncedCount: syncedUsers,
+      message: `${failedUsers} user(s) failed`,
+    };
+  }
+  return { status: "failed", message: `All ${failedUsers} user(s) failed` };
 };
