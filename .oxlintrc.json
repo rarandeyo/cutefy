@@ -88,13 +88,11 @@
       "files": ["*.config.ts", "*.config.js", "*.config.mjs"],
       "rules": {
         "import/no-default-export": "off",
-        "import/no-unassigned-import": "off",
-        "node/no-process-env": "off",
-        "typescript/no-non-null-assertion": "off"
+        "import/no-unassigned-import": "off"
       }
     },
     {
-      "files": ["src/shared/lib/env/client.ts", "src/shared/lib/env/server.ts"],
+      "files": ["src/shared/lib/env/client.ts", "src/shared/lib/env/server.ts", "drizzle.config.ts"],
       "rules": {
         "node/no-process-env": "off"
       }
