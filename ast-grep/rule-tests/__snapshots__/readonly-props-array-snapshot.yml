@@ -1,0 +1,45 @@
+id: readonly-props-array
+snapshots:
+  ? |
+    type BarProps = {
+      list: string[];
+      users: User[];
+    };
+  : fixed: |
+      type BarProps = {
+        list: readonly string[];
+        users: User[];
+      };
+    labels:
+    - source: 'list: string[]'
+      style: primary
+      start: 20
+      end: 34
+    - source: |-
+        type BarProps = {
+          list: string[];
+          users: User[];
+        };
+      style: secondary
+      start: 0
+      end: 55
+  ? |
+    type FooProps = {
+      items: Item[];
+    };
+  : fixed: |
+      type FooProps = {
+        items: readonly Item[];
+      };
+    labels:
+    - source: 'items: Item[]'
+      style: primary
+      start: 20
+      end: 33
+    - source: |-
+        type FooProps = {
+          items: Item[];
+        };
+      style: secondary
+      start: 0
+      end: 37

@@ -1,0 +1,20 @@
+id: no-derived-state-in-effect
+snapshots:
+  useEffect(() => setComment(''), [userId]):
+    labels:
+    - source: useEffect(() => setComment(''), [userId])
+      style: primary
+      start: 0
+      end: 41
+  ? |
+    useEffect(() => {
+      setFiltered(getFiltered(todos, filter));
+    }, [todos, filter]);
+  : labels:
+    - source: |-
+        useEffect(() => {
+          setFiltered(getFiltered(todos, filter));
+        }, [todos, filter])
+      style: primary
+      start: 0
+      end: 80

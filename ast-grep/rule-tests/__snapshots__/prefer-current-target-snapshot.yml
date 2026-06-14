@@ -1,0 +1,44 @@
+id: prefer-current-target
+snapshots:
+  ? |
+    btn.addEventListener('click', (e) => {
+      const target = e.target;
+    });
+  : labels:
+    - source: e.target
+      style: primary
+      start: 56
+      end: 64
+    - source: |-
+        btn.addEventListener('click', (e) => {
+          const target = e.target;
+        })
+      style: secondary
+      start: 0
+      end: 68
+  ? |
+    btn.addEventListener('click', function (e) {
+      console.log(e.target);
+    });
+  : labels:
+    - source: e.target
+      style: primary
+      start: 59
+      end: 67
+    - source: |-
+        btn.addEventListener('click', function (e) {
+          console.log(e.target);
+        })
+      style: secondary
+      start: 0
+      end: 72
+  btn?.addEventListener('click', (e) => e.target):
+    labels:
+    - source: e.target
+      style: primary
+      start: 38
+      end: 46
+    - source: btn?.addEventListener('click', (e) => e.target)
+      style: secondary
+      start: 0
+      end: 47

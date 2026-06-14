@@ -1,0 +1,14 @@
+id: no-enum
+snapshots:
+  const enum Status { Open = 1, Closed = 2 }:
+    labels:
+    - source: const enum Status { Open = 1, Closed = 2 }
+      style: primary
+      start: 0
+      end: 42
+  enum Color { Red, Blue }:
+    labels:
+    - source: enum Color { Red, Blue }
+      style: primary
+      start: 0
+      end: 24

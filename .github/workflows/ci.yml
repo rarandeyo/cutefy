@@ -25,5 +25,11 @@ jobs:
       - name: Format check
         run: pnpm exec oxfmt --check ./src
 
+      - name: ast-grep scan
+        run: pnpm ast-grep
+
+      - name: ast-grep test
+        run: pnpm ast-grep:test
+
       - name: Type check
         run: pnpm typecheck

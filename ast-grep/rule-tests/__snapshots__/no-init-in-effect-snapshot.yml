@@ -1,0 +1,16 @@
+id: no-init-in-effect
+snapshots:
+  ? |
+    useEffect(() => {
+      initApp();
+      logEvent('mounted');
+    }, []);
+  : labels:
+    - source: |-
+        useEffect(() => {
+          initApp();
+          logEvent('mounted');
+        }, [])
+      style: primary
+      start: 0
+      end: 60

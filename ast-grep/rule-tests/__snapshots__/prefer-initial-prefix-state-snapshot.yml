@@ -1,0 +1,14 @@
+id: prefer-initial-prefix-state
+snapshots:
+  const [n, setN] = useState(props.age):
+    labels:
+    - source: useState(props.age)
+      style: primary
+      start: 18
+      end: 37
+  useState(props.name):
+    labels:
+    - source: useState(props.name)
+      style: primary
+      start: 0
+      end: 20

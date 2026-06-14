@@ -1,0 +1,34 @@
+id: catch-narrow-error
+snapshots:
+  ? |
+    try { doX(); } catch (e) {
+      console.error(e);
+    }
+  : labels:
+    - source: |-
+        catch (e) {
+          console.error(e);
+        }
+      style: primary
+      start: 15
+      end: 48
+    - source: e
+      style: secondary
+      start: 22
+      end: 23
+  ? |
+    try { doY(); } catch (err) {
+      logger.log(err.message);
+    }
+  : labels:
+    - source: |-
+        catch (err) {
+          logger.log(err.message);
+        }
+      style: primary
+      start: 15
+      end: 57
+    - source: err
+      style: secondary
+      start: 22
+      end: 25

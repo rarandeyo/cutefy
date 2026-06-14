@@ -1,0 +1,28 @@
+id: prefer-arrow-component
+snapshots:
+  function Button() { return <button /> }:
+    labels:
+    - source: function Button() { return <button /> }
+      style: primary
+      start: 0
+      end: 39
+    - source: <button />
+      style: secondary
+      start: 27
+      end: 37
+  ? |
+    function ProductItem() {
+      return <div>item</div>;
+    }
+  : labels:
+    - source: |-
+        function ProductItem() {
+          return <div>item</div>;
+        }
+      style: primary
+      start: 0
+      end: 52
+    - source: <div>item</div>
+      style: secondary
+      start: 34
+      end: 49

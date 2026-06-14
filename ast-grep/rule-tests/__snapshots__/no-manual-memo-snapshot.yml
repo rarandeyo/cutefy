@@ -1,0 +1,20 @@
+id: no-manual-memo
+snapshots:
+  const memoized = useMemo(() => compute(a, b), [a, b]):
+    labels:
+    - source: useMemo(() => compute(a, b), [a, b])
+      style: primary
+      start: 17
+      end: 53
+  useCallback(() => {}, []):
+    labels:
+    - source: useCallback(() => {}, [])
+      style: primary
+      start: 0
+      end: 25
+  useMemo(() => 1, []):
+    labels:
+    - source: useMemo(() => 1, [])
+      style: primary
+      start: 0
+      end: 20

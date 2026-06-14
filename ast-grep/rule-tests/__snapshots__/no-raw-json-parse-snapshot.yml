@@ -1,0 +1,20 @@
+id: no-raw-json-parse
+snapshots:
+  JSON.parse(s):
+    labels:
+    - source: JSON.parse(s)
+      style: primary
+      start: 0
+      end: 13
+  const data = JSON.parse(input):
+    labels:
+    - source: JSON.parse(input)
+      style: primary
+      start: 13
+      end: 30
+  schema.parse(JSON.parse(s)):
+    labels:
+    - source: JSON.parse(s)
+      style: primary
+      start: 13
+      end: 26
