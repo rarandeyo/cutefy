@@ -8,15 +8,18 @@ Spotify のお気に入り曲を期間で絞り込んで、サクッとプレイ
 
 - **Spotify ログイン** — OAuth でワンクリック認証
 - **お気に入り曲の読み込み** — ライブラリに保存した全楽曲を取得
-- **日付フィルタリング** — 追加日の期間指定で楽曲を絞り込み（今週・今月などのプリセット付き）
+- **日付フィルタリング** — 追加日の期間指定で楽曲を絞り込み（1ヶ月・3ヶ月・半年・1年のプリセット付き）
 - **プレイリスト作成** — フィルタした楽曲から Spotify プレイリストを自動生成
+- **定期同期** — 設定画面から有効にすると、毎日自動でプレイリストを更新
 
 ## Tech Stack
 
 - **Next.js 16** (App Router) / React 19 / Tailwind CSS v4
-- **UI**: HeroUI v3 beta + Lucide icons
+- **UI**: HeroUI v3 beta + Lucide icons + tailwind-variants
 - **認証**: better-auth (Spotify OAuth)
+- **DB**: Cloudflare D1 (SQLite) + Drizzle ORM
 - **Spotify API**: @spotify/web-api-ts-sdk
+- **定期同期**: Cloudflare Workers Cron Triggers（毎日プレイリストを自動更新）
 - **Deploy**: Cloudflare Workers (OpenNext)
 
 ## 必要なもの
@@ -34,7 +37,7 @@ mise trust
 mise install
 ```
 
-これで `mise.toml` に定義された Node.js 24 と pnpm 10 がインストールされます。
+これで `mise.toml` に定義された Node.js 24・pnpm 10・ast-grep がインストールされます。
 
 ### 2. Spotify App の作成
 
@@ -58,18 +61,37 @@ cp .env.example .env
 NEXT_PUBLIC_APP_URL=http://127.0.0.1:3000
 BETTER_AUTH_URL=http://127.0.0.1:3000
 BETTER_AUTH_SECRET=<ランダムな文字列（openssl rand -base64 32 で生成）>
-NEXT_PUBLIC_SPOTIFY_CLIENT_ID=<Spotify Client ID>
-SPOTIFY_CLIENT_SECRET=<Spotify ClientClient Secret>
+SPOTIFY_CLIENT_ID=<Spotify Client ID>
+SPOTIFY_CLIENT_SECRET=<Spotify Client Secret>
 ```
 
-### 4. ローカル開発
+### 4. 依存関係のインストール
 
 ```bash
 pnpm install
+```
+
+### 5. データベースのセットアップ
+
+ローカル開発では Wrangler のローカル D1 を使用します:
+
+```bash
+pnpm db:migrate
+```
+
+### 6. ローカル開発
+
+```bash
 pnpm dev
 ```
 
 http://127.0.0.1:3000 でアクセスできます。
+
+Cloudflare Workers 上での動作確認（D1・Cron Triggers を含む）:
+
+```bash
+pnpm preview
+```
 
 ## Cloudflare Workers へのデプロイ
 
@@ -79,7 +101,15 @@ http://127.0.0.1:3000 でアクセスできます。
 pnpm wrangler login
 ```
 
-### 2. wrangler.jsonc の編集
+### 2. D1 データベースの作成
+
+```bash
+pnpm wrangler d1 create cutefy-db
+```
+
+出力された `database_id` を `wrangler.jsonc` の `d1_databases[0].database_id` に設定してください。
+
+### 3. wrangler.jsonc の編集
 
 `wrangler.jsonc` の `vars` を自分の環境に合わせて変更:
 
@@ -87,13 +117,13 @@ pnpm wrangler login
 {
   "vars": {
     "NEXT_PUBLIC_APP_URL": "https://<your-worker>.workers.dev",
-    "NEXT_PUBLIC_SPOTIFY_CLIENT_ID": "<Spotify Client ID>",
+    "SPOTIFY_CLIENT_ID": "<Spotify Client ID>",
     "BETTER_AUTH_URL": "https://<your-worker>.workers.dev"
   }
 }
 ```
 
-### 3. シークレットの設定
+### 4. シークレットの設定
 
 サーバー側の秘匿情報は Wrangler の secrets で管理します:
 
@@ -102,7 +132,15 @@ pnpm wrangler secret put BETTER_AUTH_SECRET
 pnpm wrangler secret put SPOTIFY_CLIENT_SECRET
 ```
 
-### 4. Spotify Redirect URI の追加
+### 5. データベースマイグレーション
+
+リモートの D1 にマイグレーションを適用します:
+
+```bash
+pnpm db:migrate:remote
+```
+
+### 6. Spotify Redirect URI の追加
 
 [Spotify Developer Dashboard](https://developer.spotify.com/dashboard) で、デプロイ先の Redirect URI を追加:
 
@@ -110,11 +148,13 @@ pnpm wrangler secret put SPOTIFY_CLIENT_SECRET
 https://<your-worker>.workers.dev/api/auth/callback/spotify
 ```
 
-### 5. デプロイ
+### 7. デプロイ
 
 ```bash
 pnpm cf:deploy
 ```
+
+Cron Triggers（`0 0 * * *`）により、毎日 UTC 0:00 にプレイリストの自動同期が実行されます。
 
 ## 注意事項
 
