@@ -10,8 +10,6 @@ import {
   type DateRange,
   type TrackWithAddedAt,
 } from "@/shared/lib/spotify";
-import { clientEnv } from "@/shared/lib/env/client";
-import { env as serverEnv } from "@/shared/lib/env/server";
 import { createDb, type Db } from "@/shared/lib/db";
 import { account, playlistSync, syncSettings } from "@/shared/lib/db/schema";
 import { refreshAccessToken } from "@/shared/lib/spotify/token";
@@ -45,9 +43,9 @@ const SYNC_PERIODS = [
   { key: "1year", label: "1 Year", months: 12 },
 ] as const satisfies readonly SyncPeriod[];
 
-const buildPlaylistDescription = (): string => {
+const buildPlaylistDescription = (appUrl: string): string => {
   const date = new Date().toISOString().slice(0, 10);
-  return `Created by Cutefy (${clientEnv.NEXT_PUBLIC_APP_URL}) · Updated at ${date}`;
+  return `Created by Cutefy (${appUrl}) · Updated at ${date}`;
 };
 
 const buildDateRange = (period: SyncPeriod): DateRange => {
@@ -113,6 +111,7 @@ const syncPeriod = async (
   userId: UserId,
   period: SyncPeriod,
   allTracks: readonly TrackWithAddedAt[],
+  appUrl: string,
 ): Promise<void> => {
   const dateRange = buildDateRange(period);
   const filteredTracks = filterTracksByDateRange(allTracks, dateRange);
@@ -125,7 +124,7 @@ const syncPeriod = async (
 
   const existingPlaylistId = await getPlaylistId(db, userId, period.key);
 
-  const description = buildPlaylistDescription();
+  const description = buildPlaylistDescription(appUrl);
 
   if (existingPlaylistId) {
     try {
@@ -168,6 +167,7 @@ const syncUserPlaylists = async (
   clientId: string,
   clientSecret: string,
   userId: UserId,
+  appUrl: string,
 ): Promise<SyncResult> => {
   console.log(`[playlist-sync] Syncing playlists for user ${userId}`);
 
@@ -195,7 +195,7 @@ const syncUserPlaylists = async (
 
   for (const period of SYNC_PERIODS) {
     try {
-      await syncPeriod(sdk, db, userId, period, allTracks);
+      await syncPeriod(sdk, db, userId, period, allTracks, appUrl);
       syncedCount++;
     } catch (err) {
       const msg = errorMessage(err, "unknown error");
@@ -222,11 +222,12 @@ export const updatePlaylists = async (
   options: UpdatePlaylistsOptions = { mode: "batch" },
 ): Promise<SyncResult> => {
   const db = createDb(env.DB);
-  const clientId = serverEnv.SPOTIFY_CLIENT_ID;
-  const clientSecret = serverEnv.SPOTIFY_CLIENT_SECRET;
+  const clientId = env.SPOTIFY_CLIENT_ID;
+  const clientSecret = env.SPOTIFY_CLIENT_SECRET;
+  const appUrl = env.NEXT_PUBLIC_APP_URL;
 
   if (options.mode === "single") {
-    return syncUserPlaylists(db, clientId, clientSecret, options.userId);
+    return syncUserPlaylists(db, clientId, clientSecret, options.userId, appUrl);
   }
 
   const enabledUserIds = await getEnabledUserIds(db);
@@ -241,7 +242,7 @@ export const updatePlaylists = async (
   let failedUsers = 0;
   for (const uid of enabledUserIds) {
     try {
-      const result = await syncUserPlaylists(db, clientId, clientSecret, uid);
+      const result = await syncUserPlaylists(db, clientId, clientSecret, uid, appUrl);
       if (result.status === "failed") {
         failedUsers++;
       } else {
