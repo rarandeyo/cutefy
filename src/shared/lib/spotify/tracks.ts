@@ -2,6 +2,7 @@ import type { SavedTrack, SpotifyApi } from "@spotify/web-api-ts-sdk";
 import { createSpotifyTrackUri, type SpotifyTrackUri } from "@/shared/types/brands";
 
 const SAVED_TRACKS_PAGE_SIZE = 50;
+const FETCH_CONCURRENCY = 10;
 
 export type DateRange = {
   startDate: Date;
@@ -35,16 +36,19 @@ export const fetchAllSavedTracks = async (
     sdk.currentUser.tracks.savedTracks(SAVED_TRACKS_PAGE_SIZE, offset);
 
   const firstPage = await fetchPage(0);
-  const remainingPageCount = Math.ceil(firstPage.total / SAVED_TRACKS_PAGE_SIZE) - 1;
-  const remainingPages = await Promise.all(
-    Array.from({ length: remainingPageCount }, (_, i) =>
-      fetchPage((i + 1) * SAVED_TRACKS_PAGE_SIZE),
-    ),
+  const remainingOffsets = Array.from(
+    { length: Math.ceil(firstPage.total / SAVED_TRACKS_PAGE_SIZE) - 1 },
+    (_, i) => (i + 1) * SAVED_TRACKS_PAGE_SIZE,
   );
 
-  return [firstPage, ...remainingPages].flatMap((page) =>
-    page.items.map(mapSavedTrackToTrackWithAddedAt),
-  );
+  const pages = [firstPage];
+  for (let i = 0; i < remainingOffsets.length; i += FETCH_CONCURRENCY) {
+    const batch = remainingOffsets.slice(i, i + FETCH_CONCURRENCY);
+    const results = await Promise.all(batch.map(fetchPage));
+    pages.push(...results);
+  }
+
+  return pages.flatMap((page) => page.items.map(mapSavedTrackToTrackWithAddedAt));
 };
 
 export const filterTracksByDateRange = (
