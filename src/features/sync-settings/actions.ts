@@ -55,7 +55,7 @@ export const toggleSyncSettings = async (
   }
 
   try {
-    const sync = await updatePlaylists(env, { skipEnabledCheck: true, userId });
+    const sync = await updatePlaylists(env, { mode: "single", userId });
     return { ok: true, enabled: true, sync };
   } catch (err) {
     return {

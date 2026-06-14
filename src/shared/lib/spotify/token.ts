@@ -12,11 +12,15 @@ export type TokenRefreshResult = {
   newRefreshToken: string | undefined;
 };
 
-export const refreshAccessToken = async (
-  refreshToken: string,
-  clientId: string,
-  clientSecret: string,
-): Promise<TokenRefreshResult> => {
+export const refreshAccessToken = async ({
+  refreshToken,
+  clientId,
+  clientSecret,
+}: {
+  refreshToken: string;
+  clientId: string;
+  clientSecret: string;
+}): Promise<TokenRefreshResult> => {
   const response = await fetch("https://accounts.spotify.com/api/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },

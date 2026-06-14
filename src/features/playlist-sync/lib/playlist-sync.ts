@@ -172,11 +172,11 @@ const syncUserPlaylists = async (
   console.log(`[playlist-sync] Syncing playlists for user ${userId}`);
 
   const refreshToken = await getRefreshToken(db, userId);
-  const { accessToken, newRefreshToken } = await refreshAccessToken(
+  const { accessToken, newRefreshToken } = await refreshAccessToken({
     refreshToken,
     clientId,
     clientSecret,
-  );
+  });
 
   if (newRefreshToken) {
     await db
@@ -215,16 +215,18 @@ const syncUserPlaylists = async (
   return { status: "failed", message: errors.join("; ") };
 };
 
+type UpdatePlaylistsOptions = { mode: "single"; userId: UserId } | { mode: "batch" };
+
 export const updatePlaylists = async (
   env: CloudflareEnv,
-  { skipEnabledCheck = false, userId }: { skipEnabledCheck?: boolean; userId?: UserId } = {},
+  options: UpdatePlaylistsOptions = { mode: "batch" },
 ): Promise<SyncResult> => {
   const db = createDb(env.DB);
   const clientId = serverEnv.SPOTIFY_CLIENT_ID;
   const clientSecret = serverEnv.SPOTIFY_CLIENT_SECRET;
 
-  if (skipEnabledCheck && userId) {
-    return syncUserPlaylists(db, clientId, clientSecret, userId);
+  if (options.mode === "single") {
+    return syncUserPlaylists(db, clientId, clientSecret, options.userId);
   }
 
   const enabledUserIds = await getEnabledUserIds(db);
