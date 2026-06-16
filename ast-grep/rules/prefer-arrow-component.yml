@@ -4,13 +4,19 @@ severity: warning
 message: コンポーネントは const + React.FC + アロー関数で書く (ルーティングファイルを除く)
 note: |
   React.FC<Props> + アロー関数で Props 型推論を一貫させ、return 型を JSX に固定する。
-  ルーティングファイル (page.tsx / layout.tsx / index.tsx) のみ export default function を許可。
+  Next.js のルーティングファイル (page / layout / index / error / loading / not-found / template / default / global-error) のみ export default function を許可。
 files:
   - '**/*.tsx'
 ignores:
   - '**/page.tsx'
   - '**/layout.tsx'
   - '**/index.tsx'
+  - '**/error.tsx'
+  - '**/loading.tsx'
+  - '**/not-found.tsx'
+  - '**/template.tsx'
+  - '**/default.tsx'
+  - '**/global-error.tsx'
 rule:
   pattern: function $C($$$) { $$$ }
   has:

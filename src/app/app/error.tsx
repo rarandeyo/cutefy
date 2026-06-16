@@ -2,14 +2,13 @@
 
 import { Button } from "@heroui/react";
 import { RefreshCw } from "lucide-react";
-import type React from "react";
 
 type ErrorProps = {
   error: Error & { digest?: string };
   reset: () => void;
 };
 
-export default function Error({ error, reset }: ErrorProps): React.JSX.Element {
+export default function Error({ error, reset }: ErrorProps) {
   return (
     <div className="flex h-screen flex-col items-center justify-center gap-6 px-4 text-center">
       <h2 className="text-xl font-bold">エラーが発生しました</h2>

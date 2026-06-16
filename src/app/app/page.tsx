@@ -1,10 +1,7 @@
 import { redirect } from "next/navigation";
-import type React from "react";
 import { fetchAllSavedTracks, type TrackWithAddedAt } from "@/shared/lib/spotify";
 import { getSpotifyClientForCurrentUser, UnauthorizedError } from "@/shared/lib/spotify/server";
 import { MainContent } from "@/features/playlist-wizard/components/MainContent";
-
-export const dynamic = "force-dynamic";
 
 const loadInitialTracks = async (): Promise<readonly TrackWithAddedAt[]> => {
   try {
@@ -18,7 +15,7 @@ const loadInitialTracks = async (): Promise<readonly TrackWithAddedAt[]> => {
   }
 };
 
-export default async function Page(): Promise<React.JSX.Element> {
+export default async function Page() {
   const initialTracks = await loadInitialTracks();
   return <MainContent initialTracks={initialTracks} />;
 }

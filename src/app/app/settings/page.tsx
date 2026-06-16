@@ -1,7 +1,6 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import type React from "react";
 import { getAuth } from "@/shared/lib/auth/server";
 import { createDb } from "@/shared/lib/db";
 import { createUserId } from "@/shared/types/brands";
@@ -10,7 +9,7 @@ import { SettingsContent } from "@/features/sync-settings/components/SettingsCon
 
 export const dynamic = "force-dynamic";
 
-export default async function Page(): Promise<React.JSX.Element> {
+export default async function Page() {
   const auth = await getAuth();
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) {

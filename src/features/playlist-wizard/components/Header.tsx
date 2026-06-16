@@ -1,6 +1,7 @@
 import { Github, Settings } from "lucide-react";
 import Link from "next/link";
 import { LogoutButton } from "@/features/auth/components/LogoutButton";
+import { trackCache } from "@/features/playlist-wizard/lib/track-cache";
 
 export const Header: React.FC = () => (
   <header className="flex items-center justify-between pb-8">
@@ -27,7 +28,7 @@ export const Header: React.FC = () => (
       >
         <Settings className="h-4 w-4" />
       </Link>
-      <LogoutButton />
+      <LogoutButton onBeforeLogout={trackCache.clear} />
     </div>
   </header>
 );

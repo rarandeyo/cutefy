@@ -81,7 +81,8 @@
       ],
       "rules": {
         "import/no-default-export": "off",
-        "unicorn/filename-case": "off"
+        "unicorn/filename-case": "off",
+        "typescript/explicit-module-boundary-types": "off"
       }
     },
     {
