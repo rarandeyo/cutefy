@@ -1,7 +1,6 @@
 import { Github, Settings } from "lucide-react";
 import Link from "next/link";
-import { LogoutButton } from "@/features/auth/components/LogoutButton";
-import { trackCache } from "@/features/playlist-wizard/lib/track-cache";
+import { LogoutWithCacheClear } from "@/features/playlist-wizard/components/LogoutWithCacheClear";
 
 export const Header: React.FC = () => (
   <header className="flex items-center justify-between pb-8">
@@ -22,13 +21,13 @@ export const Header: React.FC = () => (
         <Github className="h-4 w-4" />
       </a>
       <Link
-        href="/app/settings"
+        href="/home/settings"
         aria-label="設定"
         className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 text-foreground transition-colors hover:bg-white/20"
       >
         <Settings className="h-4 w-4" />
       </Link>
-      <LogoutButton onBeforeLogout={trackCache.clear} />
+      <LogoutWithCacheClear />
     </div>
   </header>
 );

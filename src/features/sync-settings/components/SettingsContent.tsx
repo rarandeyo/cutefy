@@ -18,7 +18,7 @@ export const SettingsContent: React.FC<SettingsContentProps> = ({ initialEnabled
     <div className="mx-auto flex h-screen max-w-2xl flex-col p-4 md:p-8">
       <header className="flex items-center gap-3 pb-8">
         <Link
-          href="/app"
+          href="/home"
           className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 text-foreground transition-colors hover:bg-white/20"
           aria-label="戻る"
         >

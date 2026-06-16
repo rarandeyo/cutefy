@@ -76,7 +76,7 @@ export const LoginSection: React.FC<LoginSectionProps> = ({ isLoggedIn, particle
         <div className="animate-[fade-in_0.7s_cubic-bezier(0.16,1,0.3,1)_0.3s_both]">
           {isLoggedIn ? (
             <Link
-              href="/app"
+              href="/home"
               className="group relative inline-flex items-center justify-center rounded-full bg-spotify-green px-10 py-3.5 text-base font-bold text-black shadow-[0_0_30px_rgba(29,185,84,0.25)] transition-all duration-300 hover:bg-spotify-green-hover hover:shadow-[0_0_50px_rgba(29,185,84,0.4)] hover:scale-[1.03]"
             >
               アプリへ
