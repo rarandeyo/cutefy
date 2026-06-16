@@ -3,6 +3,8 @@ import { fetchAllSavedTracks, type TrackWithAddedAt } from "@/shared/lib/spotify
 import { getSpotifyClientForCurrentUser, UnauthorizedError } from "@/shared/lib/spotify/server";
 import { MainContent } from "@/features/playlist-wizard/components/MainContent";
 
+export const dynamic = "force-dynamic";
+
 const loadInitialTracks = async (): Promise<readonly TrackWithAddedAt[]> => {
   try {
     const { sdk } = await getSpotifyClientForCurrentUser();
