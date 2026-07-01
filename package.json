@@ -27,6 +27,7 @@
     "@heroui/react": "3.0.0-beta.8",
     "@heroui/styles": "3.0.0-beta.8",
     "@internationalized/date": "^3.12.0",
+    "@praha/byethrow": "^0.12.0",
     "@spotify/web-api-ts-sdk": "github:rarandeyo/spotify-web-api-ts-sdk",
     "@t3-oss/env-nextjs": "^0.13.10",
     "better-auth": "^1.6.11",
