@@ -13,7 +13,7 @@ import {
   filterTracksByDateRange,
   type TrackWithAddedAt,
 } from "@/shared/lib/spotify";
-import type { DateRangeValidation } from "@/features/playlist-wizard/types";
+import type { DateRangeValidation } from "@/features/playlist-wizard/types/date-range-validation";
 
 export type SortOrder = "asc" | "desc";
 
@@ -65,9 +65,9 @@ const calendarDateToDate = (date: CalendarDate, endOfDay = false): Date => {
 
 const parseDateRange = (start: CalendarDate, end: CalendarDate): DateRangeValidation => {
   if (start.compare(end) <= 0) {
-    return { status: "valid" };
+    return { kind: "valid" };
   }
-  return { status: "invalid", message: "開始日は終了日以前に設定してください" };
+  return { kind: "invalid", message: "開始日は終了日以前に設定してください" };
 };
 
 export const useDateFilter = (allTracks: readonly TrackWithAddedAt[]): DateFilter => {

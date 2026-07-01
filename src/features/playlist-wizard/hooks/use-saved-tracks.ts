@@ -4,7 +4,7 @@ import { useState, useSyncExternalStore, useTransition } from "react";
 import { loadSavedTracks } from "@/features/playlist-wizard/actions";
 import { trackCache } from "@/features/playlist-wizard/lib/track-cache";
 import type { TrackWithAddedAt } from "@/shared/lib/spotify";
-import type { SavedTracksState } from "@/features/playlist-wizard/types";
+import type { SavedTracksState } from "@/features/playlist-wizard/types/saved-tracks-state";
 
 type SavedTracks = {
   state: SavedTracksState;
@@ -31,8 +31,8 @@ export const useSavedTracks = (initialTracks: readonly TrackWithAddedAt[]): Save
       try {
         setErrorState(null);
         const result = await loadSavedTracks();
-        if (!result.ok) {
-          setErrorState(USER_ERROR_MESSAGES[result.reason]);
+        if (result.kind !== "success") {
+          setErrorState(USER_ERROR_MESSAGES[result.kind]);
           return;
         }
         trackCache.set(result.tracks);
@@ -43,10 +43,10 @@ export const useSavedTracks = (initialTracks: readonly TrackWithAddedAt[]): Save
   };
 
   const state: SavedTracksState = errorState
-    ? { status: "error", tracks, message: errorState }
+    ? { kind: "error", tracks, message: errorState }
     : isLoadingTracks
-      ? { status: "loading", tracks }
-      : { status: "ready", tracks };
+      ? { kind: "loading", tracks }
+      : { kind: "ready", tracks };
 
   return { state, handleLoadTracks };
 };

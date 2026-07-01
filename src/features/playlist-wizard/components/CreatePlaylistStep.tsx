@@ -2,7 +2,7 @@ import type React from "react";
 import { Alert, Button, Input, Spinner } from "@heroui/react";
 import { ListMusic } from "lucide-react";
 import { CompletionScreen } from "./CompletionScreen";
-import type { PlaylistState } from "@/features/playlist-wizard/types";
+import type { PlaylistState } from "@/features/playlist-wizard/types/playlist-state";
 
 type CreatePlaylistStepProps = {
   playlistName: string;
@@ -21,7 +21,7 @@ export const CreatePlaylistStep: React.FC<CreatePlaylistStepProps> = ({
   onCreatePlaylist,
   onReset,
 }) => {
-  if (playlistState.status === "success") {
+  if (playlistState.kind === "success") {
     return (
       <CompletionScreen
         playlistUrl={playlistState.playlistUrl}
@@ -31,7 +31,7 @@ export const CreatePlaylistStep: React.FC<CreatePlaylistStepProps> = ({
     );
   }
 
-  const isCreating = playlistState.status === "creating";
+  const isCreating = playlistState.kind === "creating";
 
   return (
     <div className="flex h-full flex-col items-center">
@@ -44,7 +44,7 @@ export const CreatePlaylistStep: React.FC<CreatePlaylistStepProps> = ({
           placeholder="プレイリスト名を入力"
           className="w-full max-w-sm rounded-lg border border-border bg-card-bg px-4 py-3 text-foreground placeholder:text-text-subdued transition-colors focus:border-spotify-green focus:outline-none"
         />
-        {playlistState.status === "error" && (
+        {playlistState.kind === "error" && (
           <Alert status="danger" className="w-full max-w-sm rounded-lg">
             <Alert.Indicator />
             <Alert.Content>

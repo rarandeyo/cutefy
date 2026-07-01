@@ -4,9 +4,9 @@ import { useState, useTransition } from "react";
 import { toggleSyncSettings } from "@/features/sync-settings/actions";
 
 type SyncSettingsState =
-  | { status: "ready"; enabled: boolean }
-  | { status: "syncing"; enabled: boolean }
-  | { status: "error"; enabled: boolean; message: string };
+  | Readonly<{ kind: "ready"; enabled: boolean }>
+  | Readonly<{ kind: "syncing"; enabled: boolean }>
+  | Readonly<{ kind: "error"; enabled: boolean; message: string }>;
 
 type SyncSettings = {
   state: SyncSettingsState;
@@ -26,35 +26,43 @@ const ACTION_USER_MESSAGES = {
 
 export const useSyncSettings = (initialEnabled: boolean): SyncSettings => {
   const [state, setState] = useState<SyncSettingsState>({
-    status: "ready",
+    kind: "ready",
     enabled: initialEnabled,
   });
   const [, startTransition] = useTransition();
 
   const handleToggle = (enabled: boolean): void => {
-    setState({ status: "syncing", enabled });
+    setState({ kind: "syncing", enabled });
     startTransition(async () => {
       try {
         const result = await toggleSyncSettings({ enabled });
-        if (!result.ok) {
-          setState({
-            status: "error",
-            enabled: !enabled,
-            message: ACTION_USER_MESSAGES[result.reason],
-          });
-          return;
+        switch (result.kind) {
+          case "enabled":
+            if (result.sync.kind !== "success") {
+              setState({
+                kind: "error",
+                enabled: true,
+                message: SYNC_USER_MESSAGES[result.sync.kind],
+              });
+              return;
+            }
+            setState({ kind: "ready", enabled: true });
+            return;
+          case "disabled":
+            setState({ kind: "ready", enabled: false });
+            return;
+          case "unauthorized":
+          case "invalid_input":
+          case "unknown":
+            setState({
+              kind: "error",
+              enabled: !enabled,
+              message: ACTION_USER_MESSAGES[result.kind],
+            });
+            return;
         }
-        if (result.enabled && result.sync.status !== "success") {
-          setState({
-            status: "error",
-            enabled: true,
-            message: SYNC_USER_MESSAGES[result.sync.status],
-          });
-          return;
-        }
-        setState({ status: "ready", enabled: result.enabled });
       } catch {
-        setState({ status: "error", enabled: !enabled, message: "通信エラーが発生しました" });
+        setState({ kind: "error", enabled: !enabled, message: "通信エラーが発生しました" });
       }
     });
   };

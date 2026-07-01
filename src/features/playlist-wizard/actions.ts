@@ -1,76 +1,110 @@
 "use server";
 
+import { Result } from "@praha/byethrow";
 import { z } from "zod";
+import { assertNever } from "@/shared/lib/assert-never";
 import {
   createPlaylistFromTracks,
   fetchAllSavedTracks,
+  type CreatePlaylistFromTracksError,
+  type FetchSavedTracksError,
   type TrackWithAddedAt,
 } from "@/shared/lib/spotify";
-import { getSpotifyClientForCurrentUser, UnauthorizedError } from "@/shared/lib/spotify/server";
-import { createSpotifyTrackUri, type PlaylistId } from "@/shared/types/brands";
-import { errorMessage } from "@/shared/lib/error";
+import {
+  getSpotifyClientForCurrentUser,
+  type SpotifyClientError,
+} from "@/shared/lib/spotify/server";
+import { schemaParse } from "@/shared/lib/validation";
+import type { PlaylistId } from "@/shared/types/playlist-id";
+import { SpotifyTrackUri } from "@/shared/types/spotify-track-uri";
 
 export type LoadSavedTracksResult =
-  | { ok: true; tracks: readonly TrackWithAddedAt[] }
-  | { ok: false; reason: "unauthorized" | "unknown"; message: string };
+  | Readonly<{ kind: "success"; tracks: readonly TrackWithAddedAt[] }>
+  | Readonly<{ kind: "unauthorized"; message: string }>
+  | Readonly<{ kind: "unknown"; message: string }>;
 
 export type CreatePlaylistResult =
-  | { ok: true; playlistUrl: string; playlistId: PlaylistId }
-  | { ok: false; reason: "unauthorized" | "invalid_input" | "unknown"; message: string };
+  | Readonly<{ kind: "success"; playlistUrl: string; playlistId: PlaylistId }>
+  | Readonly<{ kind: "unauthorized"; message: string }>
+  | Readonly<{ kind: "invalid_input"; message: string }>
+  | Readonly<{ kind: "unknown"; message: string }>;
 
 const createPlaylistInputSchema = z.object({
   name: z.string().min(1).max(100),
-  trackUris: z
-    .array(z.string().min(1))
-    .min(1)
-    .transform((uris) => uris.map(createSpotifyTrackUri)),
+  trackUris: z.array(SpotifyTrackUri.schema).min(1),
 });
+
+const parseCreatePlaylistInput = schemaParse(createPlaylistInputSchema);
 
 export type CreatePlaylistInput = z.input<typeof createPlaylistInputSchema>;
 
+const toLoadSavedTracksFailure = (
+  error: SpotifyClientError | FetchSavedTracksError,
+): LoadSavedTracksResult => {
+  switch (error.kind) {
+    case "SessionNotFound":
+    case "AccessTokenUnavailable":
+      return { kind: "unauthorized", message: "Spotify セッションが無効です" };
+    case "AuthServiceError":
+    case "SpotifyApiError":
+    case "ValidationError":
+      return { kind: "unknown", message: "曲の取得に失敗しました" };
+    default:
+      return assertNever(error);
+  }
+};
+
 export const loadSavedTracks = async (): Promise<LoadSavedTracksResult> => {
-  try {
-    const { sdk } = await getSpotifyClientForCurrentUser();
-    const tracks = await fetchAllSavedTracks(sdk);
-    return { ok: true, tracks };
-  } catch (error) {
-    if (error instanceof UnauthorizedError) {
-      return { ok: false, reason: "unauthorized", message: error.message };
-    }
-    return {
-      ok: false,
-      reason: "unknown",
-      message: errorMessage(error, "曲の取得に失敗しました"),
-    };
+  const result = await Result.pipe(
+    getSpotifyClientForCurrentUser(),
+    Result.andThen(({ sdk }) => fetchAllSavedTracks(sdk)),
+  );
+  return Result.isSuccess(result)
+    ? { kind: "success", tracks: result.value }
+    : toLoadSavedTracksFailure(result.error);
+};
+
+const toCreatePlaylistFailure = (
+  error: SpotifyClientError | CreatePlaylistFromTracksError,
+): CreatePlaylistResult => {
+  switch (error.kind) {
+    case "SessionNotFound":
+    case "AccessTokenUnavailable":
+      return { kind: "unauthorized", message: "Spotify セッションが無効です" };
+    case "AuthServiceError":
+    case "SpotifyApiError":
+    case "ValidationError":
+    case "PlaylistNotFound":
+      return { kind: "unknown", message: "プレイリストの作成に失敗しました" };
+    default:
+      return assertNever(error);
   }
 };
 
 export const createPlaylist = async (input: CreatePlaylistInput): Promise<CreatePlaylistResult> => {
-  const parsed = createPlaylistInputSchema.safeParse(input);
-  if (!parsed.success) {
+  const parsed = parseCreatePlaylistInput(input);
+  if (Result.isFailure(parsed)) {
     return {
-      ok: false,
-      reason: "invalid_input",
+      kind: "invalid_input",
       message: parsed.error.issues[0]?.message ?? "入力が不正です",
     };
   }
 
-  try {
-    const { sdk } = await getSpotifyClientForCurrentUser();
-    const result = await createPlaylistFromTracks({
-      sdk,
-      playlistName: parsed.data.name,
-      trackUris: parsed.data.trackUris,
-    });
-    return { ok: true, ...result };
-  } catch (error) {
-    if (error instanceof UnauthorizedError) {
-      return { ok: false, reason: "unauthorized", message: error.message };
-    }
-    return {
-      ok: false,
-      reason: "unknown",
-      message: errorMessage(error, "プレイリストの作成に失敗しました"),
-    };
-  }
+  const result = await Result.pipe(
+    getSpotifyClientForCurrentUser(),
+    Result.andThen(({ sdk }) =>
+      createPlaylistFromTracks({
+        sdk,
+        playlistName: parsed.value.name,
+        trackUris: parsed.value.trackUris,
+      }),
+    ),
+  );
+  return Result.isSuccess(result)
+    ? {
+        kind: "success",
+        playlistUrl: result.value.playlistUrl,
+        playlistId: result.value.playlistId,
+      }
+    : toCreatePlaylistFailure(result.error);
 };

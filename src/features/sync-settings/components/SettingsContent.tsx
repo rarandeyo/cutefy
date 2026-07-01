@@ -12,7 +12,7 @@ type SettingsContentProps = {
 
 export const SettingsContent: React.FC<SettingsContentProps> = ({ initialEnabled }) => {
   const { state, handleToggle } = useSyncSettings(initialEnabled);
-  const isSyncing = state.status === "syncing";
+  const isSyncing = state.kind === "syncing";
 
   return (
     <div className="mx-auto flex h-screen max-w-2xl flex-col p-4 md:p-8">
@@ -53,7 +53,7 @@ export const SettingsContent: React.FC<SettingsContentProps> = ({ initialEnabled
             </div>
           )}
 
-          {state.status === "error" && <p className="mt-3 text-sm text-danger">{state.message}</p>}
+          {state.kind === "error" && <p className="mt-3 text-sm text-danger">{state.message}</p>}
         </div>
       </div>
     </div>

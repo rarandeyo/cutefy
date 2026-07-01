@@ -40,7 +40,7 @@ export const WizardSteps: React.FC<WizardStepsProps> = ({ initialTracks }) => {
     usePlaylistCreation(filteredTracks, dateRange);
 
   const nextDisabled =
-    currentStep === 1 && (filteredTracks.length === 0 || validation.status === "invalid");
+    currentStep === 1 && (filteredTracks.length === 0 || validation.kind === "invalid");
 
   return (
     <>

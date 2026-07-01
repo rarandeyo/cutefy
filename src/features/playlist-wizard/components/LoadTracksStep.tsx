@@ -1,7 +1,7 @@
 import { Alert, Button, Spinner } from "@heroui/react";
 import { CheckCircle, Music } from "lucide-react";
 import { StepNav } from "./StepNav";
-import type { SavedTracksState } from "@/features/playlist-wizard/types";
+import type { SavedTracksState } from "@/features/playlist-wizard/types/saved-tracks-state";
 
 type LoadTracksStepProps = {
   state: SavedTracksState;
@@ -11,8 +11,8 @@ type LoadTracksStepProps = {
 
 export const LoadTracksStep: React.FC<LoadTracksStepProps> = ({ state, onLoadTracks, onNext }) => {
   const trackCount = state.tracks.length;
-  const isLoading = state.status === "loading";
-  const error = state.status === "error" ? state.message : null;
+  const isLoading = state.kind === "loading";
+  const error = state.kind === "error" ? state.message : null;
 
   return (
     <div className="flex h-full flex-col items-center">

@@ -8,7 +8,7 @@ import * as schema from "@/shared/lib/db/schema";
 const buildAuth = (db: D1Database) =>
   betterAuth({
     baseURL: env.BETTER_AUTH_URL,
-    secret: env.BETTER_AUTH_SECRET,
+    secret: env.BETTER_AUTH_SECRET.unwrap(),
     database: drizzleAdapter(drizzle(db), { provider: "sqlite", schema }),
     session: {
       cookieCache: {
@@ -19,7 +19,7 @@ const buildAuth = (db: D1Database) =>
     socialProviders: {
       spotify: {
         clientId: env.SPOTIFY_CLIENT_ID,
-        clientSecret: env.SPOTIFY_CLIENT_SECRET,
+        clientSecret: env.SPOTIFY_CLIENT_SECRET.unwrap(),
         scope: [
           "user-read-email",
           "user-read-private",

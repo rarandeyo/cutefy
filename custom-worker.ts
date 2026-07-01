@@ -5,7 +5,7 @@ import { default as handler } from "./.open-next/worker.js";
 export default {
   fetch: handler.fetch,
   async scheduled(_controller: ScheduledController, env: CloudflareEnv, ctx: ExecutionContext) {
-    const { updatePlaylists } = await import("./src/features/playlist-sync/lib/playlist-sync");
-    ctx.waitUntil(updatePlaylists(env));
+    const { syncAllUsers } = await import("./src/features/playlist-sync/lib/playlist-sync");
+    ctx.waitUntil(syncAllUsers(env));
   },
 } satisfies ExportedHandler<CloudflareEnv>;

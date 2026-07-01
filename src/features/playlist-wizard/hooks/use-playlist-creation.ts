@@ -6,9 +6,9 @@ import { createPlaylist } from "@/features/playlist-wizard/actions";
 import type { TrackWithAddedAt } from "@/shared/lib/spotify";
 import {
   INITIAL_PLAYLIST_STATE,
-  type NameState,
   type PlaylistState,
-} from "@/features/playlist-wizard/types";
+} from "@/features/playlist-wizard/types/playlist-state";
+import type { NameState } from "@/features/playlist-wizard/types/name-state";
 
 type PlaylistCreation = {
   playlistName: string;
@@ -50,20 +50,20 @@ export const usePlaylistCreation = (
   const handleCreatePlaylist = (): void => {
     if (!playlistName.trim() || filteredTracks.length === 0) return;
 
-    setPlaylistState({ status: "creating" });
+    setPlaylistState({ kind: "creating" });
     startCreatingTransition(async () => {
       try {
         const result = await createPlaylist({
           name: playlistName.trim(),
           trackUris: filteredTracks.map((t) => t.uri),
         });
-        if (!result.ok) {
-          setPlaylistState({ status: "error", message: USER_ERROR_MESSAGES[result.reason] });
+        if (result.kind !== "success") {
+          setPlaylistState({ kind: "error", message: USER_ERROR_MESSAGES[result.kind] });
           return;
         }
-        setPlaylistState({ status: "success", playlistUrl: result.playlistUrl });
+        setPlaylistState({ kind: "success", playlistUrl: result.playlistUrl });
       } catch {
-        setPlaylistState({ status: "error", message: "通信エラーが発生しました" });
+        setPlaylistState({ kind: "error", message: "通信エラーが発生しました" });
       }
     });
   };
