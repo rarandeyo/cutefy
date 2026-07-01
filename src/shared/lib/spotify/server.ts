@@ -3,10 +3,11 @@ import "server-only";
 import { headers } from "next/headers";
 import { Result } from "@praha/byethrow";
 import type { SpotifyApi } from "@spotify/web-api-ts-sdk";
+import { getCurrentUserId, type CurrentUserIdError } from "@/shared/lib/auth/current-user";
 import { getAuth } from "@/shared/lib/auth/server";
 import { env } from "@/shared/lib/env/server";
 import { Sensitive } from "@/shared/lib/sensitive";
-import { UserId } from "@/shared/types/user-id";
+import type { UserId } from "@/shared/types/user-id";
 import { createSpotifyClient } from "./client";
 
 export type SpotifyClientContext = Readonly<{
@@ -14,34 +15,17 @@ export type SpotifyClientContext = Readonly<{
   userId: UserId;
 }>;
 
-export type SpotifyClientError =
-  | Readonly<{ kind: "SessionNotFound" }>
-  | Readonly<{ kind: "AccessTokenUnavailable"; cause: unknown }>
-  | Readonly<{ kind: "AuthServiceError"; cause: unknown }>;
+type AccessTokenUnavailableError = Readonly<{ kind: "AccessTokenUnavailable"; cause: unknown }>;
+
+export type SpotifyClientError = CurrentUserIdError | AccessTokenUnavailableError;
 
 type Auth = Awaited<ReturnType<typeof getAuth>>;
-type Session = NonNullable<Awaited<ReturnType<Auth["api"]["getSession"]>>>;
-
-const getSession = (
-  auth: Auth,
-  requestHeaders: Headers,
-): Result.ResultAsync<Session, SpotifyClientError> =>
-  Result.pipe(
-    Result.try({
-      try: () => auth.api.getSession({ headers: requestHeaders }),
-      catch: (cause): SpotifyClientError => ({ kind: "AuthServiceError", cause }),
-    }),
-    Result.andThen(
-      (session): Result.Result<Session, SpotifyClientError> =>
-        session ? Result.succeed(session) : Result.fail({ kind: "SessionNotFound" }),
-    ),
-  );
 
 const getSpotifyAccessToken = (
   auth: Auth,
   requestHeaders: Headers,
   userId: UserId,
-): Result.ResultAsync<Sensitive<string>, SpotifyClientError> =>
+): Result.ResultAsync<Sensitive<string>, AccessTokenUnavailableError> =>
   Result.pipe(
     Result.try({
       try: () =>
@@ -49,10 +33,10 @@ const getSpotifyAccessToken = (
           body: { providerId: "spotify", userId },
           headers: requestHeaders,
         }),
-      catch: (cause): SpotifyClientError => ({ kind: "AccessTokenUnavailable", cause }),
+      catch: (cause): AccessTokenUnavailableError => ({ kind: "AccessTokenUnavailable", cause }),
     }),
     Result.andThen(
-      (token): Result.Result<Sensitive<string>, SpotifyClientError> =>
+      (token): Result.Result<Sensitive<string>, AccessTokenUnavailableError> =>
         token?.accessToken
           ? Result.succeed(Sensitive.of(token.accessToken))
           : Result.fail({ kind: "AccessTokenUnavailable", cause: undefined }),
@@ -68,13 +52,7 @@ export const getSpotifyClientForCurrentUser = async (): Result.ResultAsync<
 
   return Result.pipe(
     Result.do(),
-    Result.bind("session", () => getSession(auth, requestHeaders)),
-    Result.bind("userId", ({ session }) =>
-      Result.pipe(
-        UserId.parse(session.user.id),
-        Result.mapError((cause): SpotifyClientError => ({ kind: "AuthServiceError", cause })),
-      ),
-    ),
+    Result.bind("userId", () => getCurrentUserId(auth, requestHeaders)),
     Result.bind("accessToken", ({ userId }) => getSpotifyAccessToken(auth, requestHeaders, userId)),
     Result.map(
       ({ userId, accessToken }): SpotifyClientContext => ({
