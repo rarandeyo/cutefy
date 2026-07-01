@@ -10,20 +10,20 @@ import {
   replacePlaylistTracks,
   updatePlaylistDetails,
   type DateRange,
-  type FetchSavedTracksError,
-  type PlaylistWriteError,
   type TrackWithAddedAt,
 } from "@/shared/lib/spotify";
-import { refreshAccessToken, type TokenRefreshError } from "@/shared/lib/spotify/token";
+import { refreshAccessToken } from "@/shared/lib/spotify/token";
 import { createDb, type Db } from "@/shared/lib/db";
 import { DatabaseError } from "@/shared/lib/db/database-error";
 import { account, playlistSync, syncSettings } from "@/shared/lib/db/schema";
 import { assertNever } from "@/shared/lib/assert-never";
+import { logger } from "@/shared/lib/logger";
 import { Sensitive, sensitiveString } from "@/shared/lib/sensitive";
 import { schemaParse, type ValidationError } from "@/shared/lib/validation";
 import { PlaylistId } from "@/shared/types/playlist-id";
 import { UserId } from "@/shared/types/user-id";
-import { SYNC_PERIODS, type SyncPeriod } from "./sync-period";
+import type { RefreshTokenNotFoundError, SyncPeriodError, SyncUserSetupError } from "./sync-errors";
+import { SyncPeriod } from "./sync-period";
 import type { SyncPeriodKey } from "./sync-period-key";
 import type { SyncPeriodFailure, SyncResult } from "./sync-result";
 import type { BatchSyncResult, UserSyncFailure } from "./batch-sync-result";
@@ -31,7 +31,7 @@ import type { BatchSyncResult, UserSyncFailure } from "./batch-sync-result";
 const syncConfigSchema = z.object({
   SPOTIFY_CLIENT_ID: z.string().min(1),
   SPOTIFY_CLIENT_SECRET: sensitiveString,
-  NEXT_PUBLIC_APP_URL: z.string().min(1),
+  NEXT_PUBLIC_APP_URL: z.url(),
 });
 
 const parseSyncConfigEnv = schemaParse(syncConfigSchema);
@@ -54,27 +54,12 @@ const parseSyncConfig = (env: CloudflareEnv): Result.Result<SyncConfig, Validati
     ),
   );
 
-type RefreshTokenNotFoundError = Readonly<{
-  kind: "RefreshTokenNotFound";
-  userId: UserId;
-}>;
+const buildPlaylistDescription = (appUrl: string, now: Date): string =>
+  `Created by Cutefy (${appUrl}) · Updated at ${now.toISOString().slice(0, 10)}`;
 
-type SyncUserSetupError =
-  | DatabaseError
-  | RefreshTokenNotFoundError
-  | TokenRefreshError
-  | FetchSavedTracksError;
-
-type SyncPeriodError = DatabaseError | ValidationError | PlaylistWriteError;
-
-const buildPlaylistDescription = (appUrl: string): string => {
-  const date = new Date().toISOString().slice(0, 10);
-  return `Created by Cutefy (${appUrl}) · Updated at ${date}`;
-};
-
-const buildDateRange = (period: SyncPeriod): DateRange => {
-  const now = new Date();
-  const startDate = new Date(
+// 「N ヶ月前」は Date の月演算に従う（月末日は翌月に正規化されうる: 5/31 の 1 ヶ月前 → 5/1）
+const buildDateRange = (period: SyncPeriod, now: Date): DateRange => ({
+  startDate: new Date(
     now.getFullYear(),
     now.getMonth() - period.months,
     now.getDate(),
@@ -82,9 +67,9 @@ const buildDateRange = (period: SyncPeriod): DateRange => {
     now.getMinutes(),
     now.getSeconds(),
     now.getMilliseconds(),
-  );
-  return { startDate, endDate: now };
-};
+  ),
+  endDate: now,
+});
 
 const getRefreshToken = (
   db: Db,
@@ -127,7 +112,7 @@ const saveRotatedRefreshToken = (
       catch: DatabaseError.of,
     }),
     Result.map((): void => {
-      console.log(`[playlist-sync] Refresh token rotated and updated for user ${userId}`);
+      logger.info(`[playlist-sync] Refresh token rotated and updated for user ${userId}`);
     }),
   );
 };
@@ -158,15 +143,16 @@ const savePlaylistId = (
   userId: UserId,
   periodKey: SyncPeriodKey,
   playlistId: PlaylistId,
+  now: Date,
 ): Result.ResultAsync<void, DatabaseError> =>
   Result.try({
     try: async () => {
       await db
         .insert(playlistSync)
-        .values({ userId, period: periodKey, playlistId, updatedAt: Date.now() })
+        .values({ userId, period: periodKey, playlistId, updatedAt: now.getTime() })
         .onConflictDoUpdate({
           target: [playlistSync.userId, playlistSync.period],
-          set: { playlistId, updatedAt: Date.now() },
+          set: { playlistId, updatedAt: now.getTime() },
         });
     },
     catch: DatabaseError.of,
@@ -193,6 +179,7 @@ type SyncPeriodContext = Readonly<{
   db: Db;
   userId: UserId;
   appUrl: string;
+  now: Date;
 }>;
 
 const createNewPlaylist = (
@@ -209,10 +196,10 @@ const createNewPlaylist = (
       description,
     }),
     Result.andThrough(({ playlistId }) =>
-      savePlaylistId(ctx.db, ctx.userId, period.key, playlistId),
+      savePlaylistId(ctx.db, ctx.userId, period.key, playlistId, ctx.now),
     ),
     Result.map(({ playlistId }): void => {
-      console.log(
+      logger.info(
         `[playlist-sync] Created playlist ${period.key} (${playlistId}): ${trackUris.length} tracks`,
       );
     }),
@@ -228,9 +215,9 @@ const updateExistingPlaylist = (
   Result.pipe(
     replacePlaylistTracks({ sdk: ctx.sdk, playlistId, trackUris }),
     Result.andThen(() => updatePlaylistDetails({ sdk: ctx.sdk, playlistId, description })),
-    Result.andThen(() => savePlaylistId(ctx.db, ctx.userId, period.key, playlistId)),
+    Result.andThen(() => savePlaylistId(ctx.db, ctx.userId, period.key, playlistId, ctx.now)),
     Result.map((): void => {
-      console.log(`[playlist-sync] Updated playlist ${period.key}: ${trackUris.length} tracks`);
+      logger.info(`[playlist-sync] Updated playlist ${period.key}: ${trackUris.length} tracks`);
     }),
   );
 
@@ -239,16 +226,16 @@ const syncPeriodPlaylist = (
   period: SyncPeriod,
   allTracks: readonly TrackWithAddedAt[],
 ): Result.ResultAsync<void, SyncPeriodError> => {
-  const trackUris = filterTracksByDateRange(allTracks, buildDateRange(period))
+  const trackUris = filterTracksByDateRange(allTracks, buildDateRange(period, ctx.now))
     .toReversed()
     .map((track) => track.uri);
 
   if (trackUris.length === 0) {
-    console.log(`[playlist-sync] No tracks for period ${period.key}, skipping`);
+    logger.info(`[playlist-sync] No tracks for period ${period.key}, skipping`);
     return Promise.resolve(Result.succeed(undefined));
   }
 
-  const description = buildPlaylistDescription(ctx.appUrl);
+  const description = buildPlaylistDescription(ctx.appUrl, ctx.now);
 
   return Result.pipe(
     findPlaylistId(ctx.db, ctx.userId, period.key),
@@ -262,7 +249,7 @@ const syncPeriodPlaylist = (
                 return Promise.resolve(Result.fail(error));
               }
               // Spotify 上で削除されたプレイリストは作り直す
-              console.log(`[playlist-sync] Playlist ${period.key} not found, recreating`);
+              logger.info(`[playlist-sync] Playlist ${period.key} not found, recreating`);
               return createNewPlaylist(ctx, period, trackUris, description);
             }),
           ),
@@ -307,8 +294,13 @@ const syncPeriodErrorMessage = (error: SyncPeriodError): string => {
   }
 };
 
-const syncUser = async (config: SyncConfig, db: Db, userId: UserId): Promise<SyncResult> => {
-  console.log(`[playlist-sync] Syncing playlists for user ${userId}`);
+const syncUser = async (
+  config: SyncConfig,
+  db: Db,
+  userId: UserId,
+  now: Date,
+): Promise<SyncResult> => {
+  logger.info(`[playlist-sync] Syncing playlists for user ${userId}`);
 
   const setup = await Result.pipe(
     Result.do(),
@@ -331,53 +323,57 @@ const syncUser = async (config: SyncConfig, db: Db, userId: UserId): Promise<Syn
 
   if (Result.isFailure(setup)) {
     const message = syncUserSetupErrorMessage(setup.error);
-    console.error(`[playlist-sync] Failed to sync user ${userId}: ${message}`);
-    return { kind: "failed", message, failures: [] };
+    logger.error(`[playlist-sync] Failed to sync user ${userId}: ${message}`);
+    return { kind: "failed", errorKind: setup.error.kind, message, failures: [] };
   }
 
   const { sdk, allTracks } = setup.value;
-  console.log(`[playlist-sync] Fetched ${allTracks.length} saved tracks for user ${userId}`);
+  logger.info(`[playlist-sync] Fetched ${allTracks.length} saved tracks for user ${userId}`);
 
-  const ctx: SyncPeriodContext = { sdk, db, userId, appUrl: config.appUrl };
+  const ctx: SyncPeriodContext = { sdk, db, userId, appUrl: config.appUrl, now };
 
   const failures: SyncPeriodFailure[] = [];
-  for (const period of SYNC_PERIODS) {
+  for (const period of SyncPeriod.all) {
     const result = await syncPeriodPlaylist(ctx, period, allTracks);
     if (Result.isFailure(result)) {
       const message = syncPeriodErrorMessage(result.error);
-      failures.push({ periodKey: period.key, message });
-      console.error(
+      failures.push({ periodKey: period.key, errorKind: result.error.kind, message });
+      logger.error(
         `[playlist-sync] Failed to sync period ${period.key} for user ${userId}: ${message}`,
       );
     }
   }
 
-  const syncedCount = SYNC_PERIODS.length - failures.length;
+  const syncedCount = SyncPeriod.all.length - failures.length;
   if (failures.length === 0) {
     return { kind: "success", syncedCount };
   }
   if (syncedCount > 0) {
     return { kind: "partial", syncedCount, failures };
   }
-  return { kind: "failed", message: "all periods failed", failures };
+  return { kind: "failed", errorKind: "AllPeriodsFailed", message: "all periods failed", failures };
 };
 
-export const syncSingleUser = async (env: CloudflareEnv, userId: UserId): Promise<SyncResult> => {
+export const syncSingleUser = async (
+  env: CloudflareEnv,
+  userId: UserId,
+  now: Date,
+): Promise<SyncResult> => {
   const config = parseSyncConfig(env);
   if (Result.isFailure(config)) {
     const message = `invalid sync configuration: ${validationIssueSummary(config.error)}`;
-    console.error(`[playlist-sync] ${message}`);
-    return { kind: "failed", message, failures: [] };
+    logger.error(`[playlist-sync] ${message}`);
+    return { kind: "failed", errorKind: config.error.kind, message, failures: [] };
   }
-  return syncUser(config.value, createDb(env.DB), userId);
+  return syncUser(config.value, createDb(env.DB), userId, now);
 };
 
-export const syncAllUsers = async (env: CloudflareEnv): Promise<BatchSyncResult> => {
+export const syncAllUsers = async (env: CloudflareEnv, now: Date): Promise<BatchSyncResult> => {
   const config = parseSyncConfig(env);
   if (Result.isFailure(config)) {
     const message = `invalid sync configuration: ${validationIssueSummary(config.error)}`;
-    console.error(`[playlist-sync] ${message}`);
-    return { kind: "failed", message, failures: [] };
+    logger.error(`[playlist-sync] ${message}`);
+    return { kind: "failed", errorKind: config.error.kind, message, failures: [] };
   }
 
   const db = createDb(env.DB);
@@ -387,29 +383,29 @@ export const syncAllUsers = async (env: CloudflareEnv): Promise<BatchSyncResult>
       enabledUserIds.error.kind === "DatabaseError"
         ? "failed to load enabled users"
         : `invalid user data: ${validationIssueSummary(enabledUserIds.error)}`;
-    console.error(`[playlist-sync] ${message}`);
-    return { kind: "failed", message, failures: [] };
+    logger.error(`[playlist-sync] ${message}`);
+    return { kind: "failed", errorKind: enabledUserIds.error.kind, message, failures: [] };
   }
 
   if (enabledUserIds.value.length === 0) {
-    console.log("[playlist-sync] No users with sync enabled, skipping");
+    logger.info("[playlist-sync] No users with sync enabled, skipping");
     return { kind: "success", syncedUserCount: 0 };
   }
 
-  console.log(`[playlist-sync] Starting playlist sync for ${enabledUserIds.value.length} user(s)`);
+  logger.info(`[playlist-sync] Starting playlist sync for ${enabledUserIds.value.length} user(s)`);
 
   const failures: UserSyncFailure[] = [];
   let syncedUserCount = 0;
   for (const userId of enabledUserIds.value) {
-    const result = await syncUser(config.value, db, userId);
+    const result = await syncUser(config.value, db, userId, now);
     if (result.kind === "failed") {
-      failures.push({ userId, message: result.message });
+      failures.push({ userId, errorKind: result.errorKind, message: result.message });
     } else {
       syncedUserCount++;
     }
   }
 
-  console.log(`[playlist-sync] Complete: ${syncedUserCount} succeeded, ${failures.length} failed`);
+  logger.info(`[playlist-sync] Complete: ${syncedUserCount} succeeded, ${failures.length} failed`);
 
   if (failures.length === 0) {
     return { kind: "success", syncedUserCount };
@@ -417,5 +413,10 @@ export const syncAllUsers = async (env: CloudflareEnv): Promise<BatchSyncResult>
   if (syncedUserCount > 0) {
     return { kind: "partial", syncedUserCount, failures };
   }
-  return { kind: "failed", message: `All ${failures.length} user(s) failed`, failures };
+  return {
+    kind: "failed",
+    errorKind: "AllUsersFailed",
+    message: `All ${failures.length} user(s) failed`,
+    failures,
+  };
 };

@@ -90,6 +90,8 @@ export const createPlaylist = async (input: CreatePlaylistInput): Promise<Create
     };
   }
 
+  // 時刻はエントリポイントで取得し、lib 側には値として渡す
+  const createdOn = new Date().toLocaleDateString();
   const result = await Result.pipe(
     getSpotifyClientForCurrentUser(),
     Result.andThen(({ sdk }) =>
@@ -97,6 +99,7 @@ export const createPlaylist = async (input: CreatePlaylistInput): Promise<Create
         sdk,
         playlistName: parsed.value.name,
         trackUris: parsed.value.trackUris,
+        description: `Created with Cutefy on ${createdOn}`,
       }),
     ),
   );

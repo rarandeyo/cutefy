@@ -38,7 +38,7 @@ const appendTrackBatches = (
 
 const createdPlaylistSchema = z.object({
   id: PlaylistId.schema,
-  external_urls: z.object({ spotify: z.string() }),
+  external_urls: z.object({ spotify: z.url() }),
 });
 
 const parseCreatedPlaylist = schemaParse(createdPlaylistSchema);
@@ -54,7 +54,7 @@ type CreatePlaylistParams = Readonly<{
   sdk: SpotifyApi;
   playlistName: string;
   trackUris: readonly SpotifyTrackUri[];
-  description?: string;
+  description: string;
   visibility?: "public" | "private";
 }>;
 
@@ -71,7 +71,7 @@ export const createPlaylistFromTracks = ({
         sdk.currentUser.playlists.createPlaylist({
           name: playlistName,
           public: visibility === "public",
-          description: description ?? `Created with Cutefy on ${new Date().toLocaleDateString()}`,
+          description,
         }),
       catch: SpotifyApiError.of,
     }),

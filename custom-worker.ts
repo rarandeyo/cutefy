@@ -6,6 +6,6 @@ export default {
   fetch: handler.fetch,
   async scheduled(_controller: ScheduledController, env: CloudflareEnv, ctx: ExecutionContext) {
     const { syncAllUsers } = await import("./src/features/playlist-sync/lib/playlist-sync");
-    ctx.waitUntil(syncAllUsers(env));
+    ctx.waitUntil(syncAllUsers(env, new Date()));
   },
 } satisfies ExportedHandler<CloudflareEnv>;

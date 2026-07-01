@@ -5,11 +5,11 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { headers } from "next/headers";
 import { z } from "zod";
 import { assertNever } from "@/shared/lib/assert-never";
+import { getCurrentUserId, type CurrentUserIdError } from "@/shared/lib/auth/current-user";
 import { getAuth } from "@/shared/lib/auth/server";
 import { createDb } from "@/shared/lib/db";
 import type { DatabaseError } from "@/shared/lib/db/database-error";
 import { schemaParse, type ValidationError } from "@/shared/lib/validation";
-import { UserId } from "@/shared/types/user-id";
 import { syncSingleUser } from "@/features/playlist-sync/lib/playlist-sync";
 import type { SyncResult } from "@/features/playlist-sync/lib/sync-result";
 import { saveSyncSettingsEnabled } from "@/features/sync-settings/lib/sync-settings-repo";
@@ -26,38 +26,7 @@ export type ToggleSyncSettingsResult =
   | Readonly<{ kind: "invalid_input"; message: string }>
   | Readonly<{ kind: "unknown"; message: string }>;
 
-type SessionNotFoundError = Readonly<{ kind: "SessionNotFound" }>;
-type AuthServiceError = Readonly<{ kind: "AuthServiceError"; cause: unknown }>;
-
-type ToggleSyncSettingsError =
-  | ValidationError
-  | SessionNotFoundError
-  | AuthServiceError
-  | DatabaseError;
-
-const getCurrentUserId = async (): Result.ResultAsync<
-  UserId,
-  SessionNotFoundError | AuthServiceError
-> => {
-  const auth = await getAuth();
-  const requestHeaders = await headers();
-  return Result.pipe(
-    Result.try({
-      try: () => auth.api.getSession({ headers: requestHeaders }),
-      catch: (cause): AuthServiceError => ({ kind: "AuthServiceError", cause }),
-    }),
-    Result.andThen(
-      (session): Result.Result<string, SessionNotFoundError> =>
-        session ? Result.succeed(session.user.id) : Result.fail({ kind: "SessionNotFound" }),
-    ),
-    Result.andThen((rawUserId) =>
-      Result.pipe(
-        UserId.parse(rawUserId),
-        Result.mapError((cause): AuthServiceError => ({ kind: "AuthServiceError", cause })),
-      ),
-    ),
-  );
-};
+type ToggleSyncSettingsError = ValidationError | CurrentUserIdError | DatabaseError;
 
 // ドメインエラー → クライアント向け結果への変換は controller 層 (Server Action) の責務
 const toToggleErrorResult = (error: ToggleSyncSettingsError): ToggleSyncSettingsResult => {
@@ -78,22 +47,28 @@ const toToggleErrorResult = (error: ToggleSyncSettingsError): ToggleSyncSettings
 export const toggleSyncSettings = async (
   input: ToggleSyncSettingsInput,
 ): Promise<ToggleSyncSettingsResult> => {
+  // 時刻はエントリポイントで一度だけ取得し、ドメイン関数には引数で注入する
+  const now = new Date();
   const result = await Result.pipe(
     Result.do(),
     Result.bind("parsed", () => parseInput(input)),
-    Result.bind("userId", () => getCurrentUserId()),
+    Result.bind("userId", async () => {
+      const auth = await getAuth();
+      const requestHeaders = await headers();
+      return getCurrentUserId(auth, requestHeaders);
+    }),
     Result.bind("env", async () => {
       const { env } = await getCloudflareContext({ async: true });
       return Result.succeed(env);
     }),
     Result.andThrough(({ parsed, userId, env }) =>
-      saveSyncSettingsEnabled(createDb(env.DB), userId, parsed.enabled),
+      saveSyncSettingsEnabled(createDb(env.DB), userId, parsed.enabled, now),
     ),
     Result.andThen(
       async ({ parsed, userId, env }): Result.ResultAsync<ToggleSyncSettingsResult, never> =>
         Result.succeed(
           parsed.enabled
-            ? { kind: "enabled", sync: await syncSingleUser(env, userId) }
+            ? { kind: "enabled", sync: await syncSingleUser(env, userId, now) }
             : { kind: "disabled" },
         ),
     ),

@@ -28,15 +28,16 @@ export const saveSyncSettingsEnabled = (
   db: Db,
   userId: UserId,
   enabled: boolean,
+  now: Date,
 ): Result.ResultAsync<void, DatabaseError> =>
   Result.try({
     try: async () => {
       await db
         .insert(syncSettings)
-        .values({ userId, enabled: enabled ? 1 : 0, updatedAt: Date.now() })
+        .values({ userId, enabled: enabled ? 1 : 0, updatedAt: now.getTime() })
         .onConflictDoUpdate({
           target: syncSettings.userId,
-          set: { enabled: enabled ? 1 : 0, updatedAt: Date.now() },
+          set: { enabled: enabled ? 1 : 0, updatedAt: now.getTime() },
         });
     },
     catch: DatabaseError.of,
