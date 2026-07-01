@@ -35,7 +35,7 @@ const savedTrackSchema = z
       artists: z.array(z.object({ name: z.string() })),
       album: z.object({
         name: z.string(),
-        images: z.array(z.object({ url: z.string() })),
+        images: z.array(z.object({ url: z.url() })),
       }),
     }),
   })
