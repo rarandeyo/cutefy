@@ -1,19 +1,16 @@
+# parallel: false — lint(--fix)とformat(--write)が同一ファイルへ並行書き込みすると更新が失われうるため
 pre-commit:
-  parallel: true
+  parallel: false
   jobs:
     - name: lint
-      run: pnpm oxlint --fix {staged_files}
-      glob: "*.{ts,tsx,js,jsx}"
+      glob: "*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}"
+      run: pnpm exec oxlint --fix {staged_files}
       stage_fixed: true
-
     - name: format
-      run: pnpm oxfmt --write {staged_files}
-      glob: "*.{ts,tsx,js,jsx}"
+      run: pnpm exec oxfmt --write --no-error-on-unmatched-pattern {staged_files}
       stage_fixed: true
-
     - name: ast-grep
-      run: ast-grep scan {staged_files}
       glob: "*.{ts,tsx,js,jsx}"
-
+      run: ast-grep scan {staged_files}
     - name: typecheck
       run: pnpm tsgo --noEmit
