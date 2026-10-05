@@ -2,9 +2,12 @@
 
 import { Result } from "@praha/byethrow";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { headers } from "next/headers";
 import { z } from "zod";
 import { claimActionCooldown, type CooldownActiveError } from "@/shared/lib/action-cooldown";
 import { assertNever } from "@/shared/lib/assert-never";
+import { getCurrentUserId } from "@/shared/lib/auth/current-user";
+import { getAuth } from "@/shared/lib/auth/server";
 import { createDb } from "@/shared/lib/db";
 import type { DatabaseError } from "@/shared/lib/db/database-error";
 import {
@@ -65,11 +68,18 @@ const toLoadSavedTracksFailure = (
 export const loadSavedTracks = async (): Promise<LoadSavedTracksResult> => {
   const now = new Date();
   const result = await Result.pipe(
-    getSpotifyClientForCurrentUser(),
+    Result.do(),
+    Result.bind("userId", async () => {
+      const auth = await getAuth();
+      const requestHeaders = await headers();
+      return getCurrentUserId(auth, requestHeaders);
+    }),
+    // アクセストークンの取得は期限切れなら Spotify への更新要求になるので、クールダウンの判定を先に行う
     Result.andThrough(async ({ userId }) => {
       const { env } = await getCloudflareContext({ async: true });
       return claimActionCooldown(createDb(env.DB), userId, "load_saved_tracks", now);
     }),
+    Result.andThen(() => getSpotifyClientForCurrentUser()),
     Result.andThen(({ sdk }) => fetchAllSavedTracks(sdk)),
   );
   return Result.isSuccess(result)

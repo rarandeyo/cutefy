@@ -9,6 +9,7 @@ import {
 type SyncSettingsState =
   | Readonly<{ kind: "ready"; enabled: boolean }>
   | Readonly<{ kind: "syncing"; enabled: boolean }>
+  | Readonly<{ kind: "notice"; enabled: boolean; message: string }>
   | Readonly<{ kind: "error"; enabled: boolean; message: string }>;
 
 type SyncSettings = {
@@ -60,7 +61,7 @@ export const useSyncSettings = (initialEnabled: boolean): SyncSettings => {
             return;
           case "sync_skipped":
             setState({
-              kind: "error",
+              kind: "notice",
               enabled: true,
               message: syncSkippedMessage(result),
             });
