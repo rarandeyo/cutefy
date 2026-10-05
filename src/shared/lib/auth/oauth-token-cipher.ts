@@ -30,6 +30,8 @@ export const loadOAuthTokenContext = (
 
 export type StoredOAuthToken = Readonly<{
   token: Sensitive<string>;
+  // DB に保存されていた値そのもの。書き戻しを「読んだときから変わっていなければ」に限るために持つ
+  storedValue: Sensitive<string>;
   // 暗号化を有効にする前に保存された平文。better-auth は平文をそのまま返すので、復号結果が保存値と同じかで見分ける
   storedAsPlaintext: boolean;
 }>;
@@ -46,6 +48,7 @@ export const decryptStoredOAuthToken = (
     Result.map(
       (token): StoredOAuthToken => ({
         token: Sensitive.of(token),
+        storedValue: stored,
         storedAsPlaintext: token === stored.unwrap(),
       }),
     ),

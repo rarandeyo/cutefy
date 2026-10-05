@@ -109,7 +109,8 @@ const getRefreshToken = (
     Result.andThen((stored) => decryptStoredOAuthToken(stored, tokenContext)),
   );
 
-// Spotify が新しい refresh token を返したときと、暗号化前の平文が残っていたときに暗号化して書き戻す
+// Spotify が新しい refresh token を返したときと、暗号化前の平文が残っていたときに暗号化して書き戻す。
+// 読んでから書くまでに再ログイン等で better-auth が書き換えた値は上書きしない
 const saveRefreshTokenIfNeeded = (
   db: Db,
   userId: UserId,
@@ -125,17 +126,27 @@ const saveRefreshTokenIfNeeded = (
     encryptOAuthTokenForStorage(tokenToSave, tokenContext),
     Result.andThen((encrypted) =>
       Result.try({
-        try: async () => {
-          await db
+        try: () =>
+          db
             .update(account)
             .set({ refreshToken: encrypted })
-            .where(and(eq(account.providerId, "spotify"), eq(account.userId, userId)));
-        },
+            .where(
+              and(
+                eq(account.providerId, "spotify"),
+                eq(account.userId, userId),
+                eq(account.refreshToken, stored.storedValue.unwrap()),
+              ),
+            )
+            .returning({ id: account.id }),
         catch: DatabaseError.of,
       }),
     ),
-    Result.map((): void => {
-      logger.info(`[playlist-sync] Refresh token saved encrypted for user ${userId}`);
+    Result.map((updated): void => {
+      logger.info(
+        updated.length > 0
+          ? `[playlist-sync] Refresh token saved encrypted for user ${userId}`
+          : `[playlist-sync] Refresh token changed concurrently, skipped saving for user ${userId}`,
+      );
     }),
   );
 };
