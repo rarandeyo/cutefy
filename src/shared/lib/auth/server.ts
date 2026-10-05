@@ -10,6 +10,10 @@ const buildAuth = (db: D1Database) =>
     baseURL: env.BETTER_AUTH_URL,
     secret: env.BETTER_AUTH_SECRET.unwrap(),
     database: drizzleAdapter(drizzle(db), { provider: "sqlite", schema }),
+    // 日次 cron は account のトークンを直接読み書きするので、形式は oauth-token-cipher と揃える
+    account: {
+      encryptOAuthTokens: true,
+    },
     session: {
       cookieCache: {
         enabled: true,

@@ -1,3 +1,4 @@
+import type { OAuthTokenCipherError } from "@/shared/lib/auth/oauth-token-cipher";
 import type { DatabaseError } from "@/shared/lib/db/database-error";
 import type { FetchSavedTracksError, PlaylistWriteError } from "@/shared/lib/spotify";
 import type { TokenRefreshError } from "@/shared/lib/spotify/token";
@@ -12,6 +13,7 @@ export type RefreshTokenNotFoundError = Readonly<{
 export type SyncUserSetupError =
   | DatabaseError
   | RefreshTokenNotFoundError
+  | OAuthTokenCipherError
   | TokenRefreshError
   | FetchSavedTracksError;
 
