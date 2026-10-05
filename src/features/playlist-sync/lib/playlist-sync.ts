@@ -13,6 +13,14 @@ import {
   type TrackWithAddedAt,
 } from "@/shared/lib/spotify";
 import { refreshAccessToken } from "@/shared/lib/spotify/token";
+import {
+  decryptStoredOAuthToken,
+  encryptOAuthTokenForStorage,
+  loadOAuthTokenContext,
+  type OAuthTokenCipherError,
+  type OAuthTokenContext,
+  type StoredOAuthToken,
+} from "@/shared/lib/auth/oauth-token-cipher";
 import { createDb, type Db } from "@/shared/lib/db";
 import { DatabaseError } from "@/shared/lib/db/database-error";
 import { account, playlistSync, syncSettings } from "@/shared/lib/db/schema";
@@ -31,6 +39,7 @@ import type { BatchSyncResult, UserSyncFailure } from "./batch-sync-result";
 const syncConfigSchema = z.object({
   SPOTIFY_CLIENT_ID: z.string().min(1),
   SPOTIFY_CLIENT_SECRET: sensitiveString,
+  BETTER_AUTH_SECRET: sensitiveString,
   NEXT_PUBLIC_APP_URL: z.url(),
 });
 
@@ -39,6 +48,7 @@ const parseSyncConfigEnv = schemaParse(syncConfigSchema);
 type SyncConfig = Readonly<{
   clientId: string;
   clientSecret: Sensitive<string>;
+  authSecret: Sensitive<string>;
   appUrl: string;
 }>;
 
@@ -49,6 +59,7 @@ const parseSyncConfig = (env: CloudflareEnv): Result.Result<SyncConfig, Validati
       (parsed): SyncConfig => ({
         clientId: parsed.SPOTIFY_CLIENT_ID,
         clientSecret: parsed.SPOTIFY_CLIENT_SECRET,
+        authSecret: parsed.BETTER_AUTH_SECRET,
         appUrl: parsed.NEXT_PUBLIC_APP_URL,
       }),
     ),
@@ -74,7 +85,11 @@ const buildDateRange = (period: SyncPeriod, now: Date): DateRange => ({
 const getRefreshToken = (
   db: Db,
   userId: UserId,
-): Result.ResultAsync<Sensitive<string>, DatabaseError | RefreshTokenNotFoundError> =>
+  tokenContext: OAuthTokenContext,
+): Result.ResultAsync<
+  StoredOAuthToken,
+  DatabaseError | RefreshTokenNotFoundError | OAuthTokenCipherError
+> =>
   Result.pipe(
     Result.try({
       try: () =>
@@ -91,28 +106,47 @@ const getRefreshToken = (
           ? Result.succeed(Sensitive.of(row.refreshToken))
           : Result.fail({ kind: "RefreshTokenNotFound", userId }),
     ),
+    Result.andThen((stored) => decryptStoredOAuthToken(stored, tokenContext)),
   );
 
-const saveRotatedRefreshToken = (
+// Spotify が新しい refresh token を返したときと、暗号化前の平文が残っていたときに暗号化して書き戻す。
+// 読んでから書くまでに再ログイン等で better-auth が書き換えた値は上書きしない
+const saveRefreshTokenIfNeeded = (
   db: Db,
   userId: UserId,
+  stored: StoredOAuthToken,
   newRefreshToken: Sensitive<string> | undefined,
-): Result.ResultAsync<void, DatabaseError> => {
-  if (newRefreshToken === undefined) {
+  tokenContext: OAuthTokenContext,
+): Result.ResultAsync<void, DatabaseError | OAuthTokenCipherError> => {
+  const tokenToSave = newRefreshToken ?? (stored.storedAsPlaintext ? stored.token : undefined);
+  if (tokenToSave === undefined) {
     return Promise.resolve(Result.succeed(undefined));
   }
   return Result.pipe(
-    Result.try({
-      try: async () => {
-        await db
-          .update(account)
-          .set({ refreshToken: newRefreshToken.unwrap() })
-          .where(and(eq(account.providerId, "spotify"), eq(account.userId, userId)));
-      },
-      catch: DatabaseError.of,
-    }),
-    Result.map((): void => {
-      logger.info(`[playlist-sync] Refresh token rotated and updated for user ${userId}`);
+    encryptOAuthTokenForStorage(tokenToSave, tokenContext),
+    Result.andThen((encrypted) =>
+      Result.try({
+        try: () =>
+          db
+            .update(account)
+            .set({ refreshToken: encrypted })
+            .where(
+              and(
+                eq(account.providerId, "spotify"),
+                eq(account.userId, userId),
+                eq(account.refreshToken, stored.storedValue.unwrap()),
+              ),
+            )
+            .returning({ id: account.id }),
+        catch: DatabaseError.of,
+      }),
+    ),
+    Result.map((updated): void => {
+      logger.info(
+        updated.length > 0
+          ? `[playlist-sync] Refresh token saved encrypted for user ${userId}`
+          : `[playlist-sync] Refresh token changed concurrently, skipped saving for user ${userId}`,
+      );
     }),
   );
 };
@@ -266,6 +300,8 @@ const syncUserSetupErrorMessage = (error: SyncUserSetupError): string => {
       return "database operation failed";
     case "RefreshTokenNotFound":
       return `no Spotify refresh token found for user ${error.userId}`;
+    case "OAuthTokenCipherFailed":
+      return "failed to decrypt or encrypt the stored refresh token";
     case "TokenRefreshRequestFailed":
       return "Spotify token refresh request failed";
     case "TokenRefreshRejected":
@@ -304,15 +340,20 @@ const syncUser = async (
 
   const setup = await Result.pipe(
     Result.do(),
-    Result.bind("refreshToken", () => getRefreshToken(db, userId)),
-    Result.bind("token", ({ refreshToken }) =>
+    Result.bind("tokenContext", () => loadOAuthTokenContext(config.authSecret)),
+    Result.bind("storedRefreshToken", ({ tokenContext }) =>
+      getRefreshToken(db, userId, tokenContext),
+    ),
+    Result.bind("token", ({ storedRefreshToken }) =>
       refreshAccessToken({
-        refreshToken,
+        refreshToken: storedRefreshToken.token,
         clientId: config.clientId,
         clientSecret: config.clientSecret,
       }),
     ),
-    Result.andThrough(({ token }) => saveRotatedRefreshToken(db, userId, token.newRefreshToken)),
+    Result.andThrough(({ token, storedRefreshToken, tokenContext }) =>
+      saveRefreshTokenIfNeeded(db, userId, storedRefreshToken, token.newRefreshToken, tokenContext),
+    ),
     Result.bind("sdk", ({ token }) =>
       Result.succeed(
         createSpotifyClient({ clientId: config.clientId, accessToken: token.accessToken }),

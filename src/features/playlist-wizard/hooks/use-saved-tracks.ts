@@ -31,11 +31,20 @@ export const useSavedTracks = (initialTracks: readonly TrackWithAddedAt[]): Save
       try {
         setErrorState(null);
         const result = await loadSavedTracks();
-        if (result.kind !== "success") {
-          setErrorState(USER_ERROR_MESSAGES[result.kind]);
-          return;
+        switch (result.kind) {
+          case "success":
+            trackCache.set(result.tracks);
+            return;
+          case "rate_limited":
+            setErrorState(
+              `曲の再取得は ${Math.ceil(result.cooldownMs / 60_000)} 分に 1 回までです。少し待ってからお試しください`,
+            );
+            return;
+          case "unauthorized":
+          case "unknown":
+            setErrorState(USER_ERROR_MESSAGES[result.kind]);
+            return;
         }
-        trackCache.set(result.tracks);
       } catch {
         setErrorState("通信エラーが発生しました");
       }

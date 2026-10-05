@@ -4,12 +4,14 @@ import { betterAuth } from "better-auth";
 import { drizzle } from "drizzle-orm/d1";
 import { env } from "@/shared/lib/env/server";
 import * as schema from "@/shared/lib/db/schema";
+import { accountOptions } from "./account-options";
 
 const buildAuth = (db: D1Database) =>
   betterAuth({
     baseURL: env.BETTER_AUTH_URL,
     secret: env.BETTER_AUTH_SECRET.unwrap(),
     database: drizzleAdapter(drizzle(db), { provider: "sqlite", schema }),
+    account: accountOptions,
     session: {
       cookieCache: {
         enabled: true,

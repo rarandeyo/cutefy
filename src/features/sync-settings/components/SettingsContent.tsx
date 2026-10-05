@@ -53,6 +53,10 @@ export const SettingsContent: React.FC<SettingsContentProps> = ({ initialEnabled
             </div>
           )}
 
+          {state.kind === "notice" && (
+            <p className="mt-3 text-sm text-foreground/60">{state.message}</p>
+          )}
+
           {state.kind === "error" && <p className="mt-3 text-sm text-danger">{state.message}</p>}
         </div>
       </div>

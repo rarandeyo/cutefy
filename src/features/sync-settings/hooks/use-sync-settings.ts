@@ -1,11 +1,15 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { toggleSyncSettings } from "@/features/sync-settings/actions";
+import {
+  toggleSyncSettings,
+  type ToggleSyncSettingsResult,
+} from "@/features/sync-settings/actions";
 
 type SyncSettingsState =
   | Readonly<{ kind: "ready"; enabled: boolean }>
   | Readonly<{ kind: "syncing"; enabled: boolean }>
+  | Readonly<{ kind: "notice"; enabled: boolean; message: string }>
   | Readonly<{ kind: "error"; enabled: boolean; message: string }>;
 
 type SyncSettings = {
@@ -17,6 +21,13 @@ const SYNC_USER_MESSAGES = {
   partial: "一部のプレイリストの同期に失敗しました",
   failed: "プレイリストの同期に失敗しました",
 } as const satisfies Record<string, string>;
+
+const syncSkippedMessage = (
+  result: Extract<ToggleSyncSettingsResult, { kind: "sync_skipped" }>,
+): string =>
+  result.reason === "cooldown"
+    ? `自動同期を有効にしました。今すぐの同期は ${Math.ceil(result.cooldownMs / 60_000)} 分に 1 回までのため、次回の自動同期で反映されます`
+    : "自動同期を有効にしました。今すぐの同期は実行できなかったため、次回の自動同期で反映されます";
 
 const ACTION_USER_MESSAGES = {
   unauthorized: "セッションが切れました。再ログインしてください",
@@ -47,6 +58,13 @@ export const useSyncSettings = (initialEnabled: boolean): SyncSettings => {
               return;
             }
             setState({ kind: "ready", enabled: true });
+            return;
+          case "sync_skipped":
+            setState({
+              kind: "notice",
+              enabled: true,
+              message: syncSkippedMessage(result),
+            });
             return;
           case "disabled":
             setState({ kind: "ready", enabled: false });

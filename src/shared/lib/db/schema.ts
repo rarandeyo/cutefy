@@ -7,4 +7,4 @@ export {
   sessionRelations,
   accountRelations,
 } from "./auth-schema";
-export { syncSettings, playlistSync } from "./app-schema";
+export { syncSettings, playlistSync, actionCooldown } from "./app-schema";
