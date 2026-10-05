@@ -16,14 +16,17 @@ import { refreshAccessToken } from "@/shared/lib/spotify/token";
 import {
   decryptStoredOAuthToken,
   encryptOAuthTokenForStorage,
+  loadOAuthTokenContext,
   type OAuthTokenCipherError,
+  type OAuthTokenContext,
+  type StoredOAuthToken,
 } from "@/shared/lib/auth/oauth-token-cipher";
 import { createDb, type Db } from "@/shared/lib/db";
 import { DatabaseError } from "@/shared/lib/db/database-error";
 import { account, playlistSync, syncSettings } from "@/shared/lib/db/schema";
 import { assertNever } from "@/shared/lib/assert-never";
 import { logger } from "@/shared/lib/logger";
-import { type Sensitive, sensitiveString } from "@/shared/lib/sensitive";
+import { Sensitive, sensitiveString } from "@/shared/lib/sensitive";
 import { schemaParse, type ValidationError } from "@/shared/lib/validation";
 import { PlaylistId } from "@/shared/types/playlist-id";
 import { UserId } from "@/shared/types/user-id";
@@ -82,9 +85,9 @@ const buildDateRange = (period: SyncPeriod, now: Date): DateRange => ({
 const getRefreshToken = (
   db: Db,
   userId: UserId,
-  authSecret: Sensitive<string>,
+  tokenContext: OAuthTokenContext,
 ): Result.ResultAsync<
-  Sensitive<string>,
+  StoredOAuthToken,
   DatabaseError | RefreshTokenNotFoundError | OAuthTokenCipherError
 > =>
   Result.pipe(
@@ -98,25 +101,28 @@ const getRefreshToken = (
       catch: DatabaseError.of,
     }),
     Result.andThen(
-      (row): Result.Result<string, RefreshTokenNotFoundError> =>
+      (row): Result.Result<Sensitive<string>, RefreshTokenNotFoundError> =>
         row?.refreshToken
-          ? Result.succeed(row.refreshToken)
+          ? Result.succeed(Sensitive.of(row.refreshToken))
           : Result.fail({ kind: "RefreshTokenNotFound", userId }),
     ),
-    Result.andThen((stored) => decryptStoredOAuthToken(stored, authSecret)),
+    Result.andThen((stored) => decryptStoredOAuthToken(stored, tokenContext)),
   );
 
-const saveRotatedRefreshToken = (
+// Spotify が新しい refresh token を返したときと、暗号化前の平文が残っていたときに暗号化して書き戻す
+const saveRefreshTokenIfNeeded = (
   db: Db,
   userId: UserId,
+  stored: StoredOAuthToken,
   newRefreshToken: Sensitive<string> | undefined,
-  authSecret: Sensitive<string>,
+  tokenContext: OAuthTokenContext,
 ): Result.ResultAsync<void, DatabaseError | OAuthTokenCipherError> => {
-  if (newRefreshToken === undefined) {
+  const tokenToSave = newRefreshToken ?? (stored.storedAsPlaintext ? stored.token : undefined);
+  if (tokenToSave === undefined) {
     return Promise.resolve(Result.succeed(undefined));
   }
   return Result.pipe(
-    encryptOAuthTokenForStorage(newRefreshToken, authSecret),
+    encryptOAuthTokenForStorage(tokenToSave, tokenContext),
     Result.andThen((encrypted) =>
       Result.try({
         try: async () => {
@@ -129,7 +135,7 @@ const saveRotatedRefreshToken = (
       }),
     ),
     Result.map((): void => {
-      logger.info(`[playlist-sync] Refresh token rotated and updated for user ${userId}`);
+      logger.info(`[playlist-sync] Refresh token saved encrypted for user ${userId}`);
     }),
   );
 };
@@ -323,16 +329,19 @@ const syncUser = async (
 
   const setup = await Result.pipe(
     Result.do(),
-    Result.bind("refreshToken", () => getRefreshToken(db, userId, config.authSecret)),
-    Result.bind("token", ({ refreshToken }) =>
+    Result.bind("tokenContext", () => loadOAuthTokenContext(config.authSecret)),
+    Result.bind("storedRefreshToken", ({ tokenContext }) =>
+      getRefreshToken(db, userId, tokenContext),
+    ),
+    Result.bind("token", ({ storedRefreshToken }) =>
       refreshAccessToken({
-        refreshToken,
+        refreshToken: storedRefreshToken.token,
         clientId: config.clientId,
         clientSecret: config.clientSecret,
       }),
     ),
-    Result.andThrough(({ token }) =>
-      saveRotatedRefreshToken(db, userId, token.newRefreshToken, config.authSecret),
+    Result.andThrough(({ token, storedRefreshToken, tokenContext }) =>
+      saveRefreshTokenIfNeeded(db, userId, storedRefreshToken, token.newRefreshToken, tokenContext),
     ),
     Result.bind("sdk", ({ token }) =>
       Result.succeed(
