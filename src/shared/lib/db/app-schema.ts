@@ -21,3 +21,15 @@ export const playlistSync = sqliteTable(
   },
   (table) => [primaryKey({ columns: [table.userId, table.period] })],
 );
+
+export const actionCooldown = sqliteTable(
+  "action_cooldown",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    action: text("action").notNull(),
+    lastTriggeredAt: integer("last_triggered_at").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.action] })],
+);

@@ -1,8 +1,12 @@
 "use server";
 
 import { Result } from "@praha/byethrow";
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { z } from "zod";
+import { claimActionCooldown, type CooldownActiveError } from "@/shared/lib/action-cooldown";
 import { assertNever } from "@/shared/lib/assert-never";
+import { createDb } from "@/shared/lib/db";
+import type { DatabaseError } from "@/shared/lib/db/database-error";
 import {
   createPlaylistFromTracks,
   fetchAllSavedTracks,
@@ -21,6 +25,7 @@ import { SpotifyTrackUri } from "@/shared/types/spotify-track-uri";
 export type LoadSavedTracksResult =
   | Readonly<{ kind: "success"; tracks: readonly TrackWithAddedAt[] }>
   | Readonly<{ kind: "unauthorized"; message: string }>
+  | Readonly<{ kind: "rate_limited"; cooldownMs: number }>
   | Readonly<{ kind: "unknown"; message: string }>;
 
 export type CreatePlaylistResult =
@@ -39,13 +44,16 @@ const parseCreatePlaylistInput = schemaParse(createPlaylistInputSchema);
 export type CreatePlaylistInput = z.input<typeof createPlaylistInputSchema>;
 
 const toLoadSavedTracksFailure = (
-  error: SpotifyClientError | FetchSavedTracksError,
+  error: SpotifyClientError | CooldownActiveError | DatabaseError | FetchSavedTracksError,
 ): LoadSavedTracksResult => {
   switch (error.kind) {
     case "SessionNotFound":
     case "AccessTokenUnavailable":
       return { kind: "unauthorized", message: "Spotify セッションが無効です" };
+    case "CooldownActive":
+      return { kind: "rate_limited", cooldownMs: error.cooldownMs };
     case "AuthServiceError":
+    case "DatabaseError":
     case "SpotifyApiError":
     case "ValidationError":
       return { kind: "unknown", message: "曲の取得に失敗しました" };
@@ -55,8 +63,13 @@ const toLoadSavedTracksFailure = (
 };
 
 export const loadSavedTracks = async (): Promise<LoadSavedTracksResult> => {
+  const now = new Date();
   const result = await Result.pipe(
     getSpotifyClientForCurrentUser(),
+    Result.andThrough(async ({ userId }) => {
+      const { env } = await getCloudflareContext({ async: true });
+      return claimActionCooldown(createDb(env.DB), userId, "load_saved_tracks", now);
+    }),
     Result.andThen(({ sdk }) => fetchAllSavedTracks(sdk)),
   );
   return Result.isSuccess(result)
